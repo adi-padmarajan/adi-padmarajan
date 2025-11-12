@@ -11,21 +11,14 @@
 * Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)
 
 ## Tech Stack
-<table>
-  <tr>
-    <th>Languages</th>
-    <th>Frontend</th>
-    <th>Backend</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="https://skillicons.dev/icons?i=python,cpp,java,js" />
-    </td>
-    <td align="center">
-      <img src="https://skillicons.dev/icons?i=react,html,css,tailwind,figma" />
-    </td>
-    <td align="center">
-      <img src="https://skillicons.dev/icons?i=nodejs,flask,mysql,sqlite,git" />
-    </td>
-  </tr>
-</table>
+## 🧠 Tech Stack
+
+<p align="center">
+  <!-- Languages -->
+  <img src="https://skillicons.dev/icons?i=java,python,c,js,html,css,react,tailwind,sqlite,figma,canva" height="48"/>
+</p>
+
+<p align="center">
+  <b>Java</b> • <b>Python</b> • <b>C</b> • <b>JavaScript</b> • <b>HTML5</b> • <b>CSS3</b> • <b>ReactJS</b> • <b>Tailwind CSS</b> • <b>SQL</b> • <b>Figma</b> • <b>Canva</b>
+</p>
+
