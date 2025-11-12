@@ -12,7 +12,7 @@
 
 ## Tech Stack
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=java,c,python,js,html,css,react,tailwind,sqlite,figma" 
+  <img src="https://skillicons.dev/icons?i=java,c,python,js,html,css,react,tailwind,mysql,figma" 
        alt="Tech Stack"
        width="600"
        style="max-width: 100%;"/>
