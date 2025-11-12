@@ -11,21 +11,21 @@
 * Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)
 
 ## Tech Stack
-<div style = "
-      display: flex;
-      flex-direction: row;
-  ">
-  
-  <div>
-    <h3> Languages </h3>
-  </div>
-
-  <div>
-    <h3> Frontend </h3>
-  </div>
-
-  <div>
-    <h3> Backend </h3>
-  </div>
-  
-</div>
+<table>
+  <tr>
+    <th>Languages</th>
+    <th>Frontend</th>
+    <th>Backend</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://skillicons.dev/icons?i=python,cpp,java,js" />
+    </td>
+    <td align="center">
+      <img src="https://skillicons.dev/icons?i=react,html,css,tailwind,figma" />
+    </td>
+    <td align="center">
+      <img src="https://skillicons.dev/icons?i=nodejs,flask,mysql,sqlite,git" />
+    </td>
+  </tr>
+</table>
