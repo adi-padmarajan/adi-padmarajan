@@ -2,8 +2,6 @@
   <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/Header.png" alt = "Banner">
 </p>
 
-<hr style="border: none; height: 2px; background: linear-gradient(to right, #ff8a00, #e52e71); border-radius: 5px;">
-
 # Hi! I am Adi
 
 ## About Me:
