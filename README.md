@@ -11,7 +11,10 @@
 * Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)
 
 ## Tech Stack
-<div>
+<div style = "
+      display: flex;
+      flex-direction: row;
+  ">
   
   <div>
     <h3> Languages </h3>
