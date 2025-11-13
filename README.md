@@ -6,7 +6,7 @@
 
 <h2> About Me </h2>
 
-<table>
+<table width = "100%">
   <tr>
     <td width="65%">
       <ul>
