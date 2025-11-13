@@ -2,8 +2,6 @@
   <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/Header.png" alt = "Banner">
 </p>
 
-<h1 align = "center">Hi! I am Adi</h1>
-
 <h2> About Me </h2>
 
 <table style="height: 100px; width: 100%; table-layout: fixed;">
