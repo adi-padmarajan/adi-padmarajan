@@ -4,7 +4,7 @@
 
 <h1 align = "center">Hi! I am Adi</h1>
 
-<h2>About Me:</h2>
+<h2>About Me</h2>
 
 <ul>
   <li>Undergraduate Student at the University of Victoria </li>
