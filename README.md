@@ -2,7 +2,7 @@
   <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/Header.png" alt = "Banner">
 </p>
 
-# Hi! I am Adi.
+<h1 align = "center">Hi! I am Adi</h1>
 
 ## About Me:
 * Undergraduate Student at the University of Victoria  
