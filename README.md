@@ -19,7 +19,7 @@
 
   <td width="35%" align="center" style="height: 100px;">
     <img 
-      src="https://github.com/adi-padmarajan/adi-padmarajan/blob/main/profile-min.jpg" 
+      src="URL" 
       alt="Adi"
       style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;"
     />
