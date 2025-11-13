@@ -6,9 +6,11 @@
 
 <h2> About Me </h2>
 
+<h2> About Me </h2>
+
 <table>
   <tr>
-    <td width="50%">
+    <td width="65%">
       <ul>
         <li>Undergraduate Student at the University of Victoria</li>
         <li>Computer Science Major with a Specialization in Software Systems and a Minor in Business</li>
@@ -16,13 +18,15 @@
         <li>Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)</li>
       </ul>
     </td>
-    <td width="50%" align="center">
+    <td width="35%" align="center">
       <img src="https://github.com/adi-padmarajan/adi-padmarajan/blob/main/profile-min.jpg" 
            alt="Adi"
+           width="180"
            style="border-radius: 12px; margin-left: 20px;">
     </td>
   </tr>
 </table>
+
 
 <h2> Tech Stack </h2>
 <p align="center">
