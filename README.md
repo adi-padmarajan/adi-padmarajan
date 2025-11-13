@@ -5,6 +5,7 @@
 <h1 align = "center">Hi! I am Adi</h1>
 
 ## About Me:
+
 * Undergraduate Student at the University of Victoria  
 * Computer Science Major with a Specialization in Software Systems and a Minor in Business  
 * Keen interest in Full Stack Development  
