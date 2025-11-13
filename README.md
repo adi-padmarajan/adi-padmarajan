@@ -4,7 +4,7 @@
 
 <h1 align = "center">Hi! I am Adi</h1>
 
-<h2>About Me</h2>
+<h2> About Me </h2>
 
 <ul>
   <li>Undergraduate Student at the University of Victoria </li>
@@ -13,7 +13,7 @@
   <li>Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)</li>
 </ul>
 
-## Tech Stack
+<h2> Tech Stack </h2>
 <p align="center">
   <img src="https://skillicons.dev/icons?i=java,c,python,js,html,css,react,tailwind,mysql,figma" 
        alt="Tech Stack"
