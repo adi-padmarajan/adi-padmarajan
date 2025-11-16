@@ -8,7 +8,7 @@
 <ul>
   <li>Undergraduate Student at the University of Victoria</li>
   <li>Computer Science Major with a Specialization in Software Systems and a Minor in Business</li>
-  <li>Keen interest in Full Stack Development</li>
+  <li>Keen interest in Full Stack Development and AI/ML, currently expanding skills in Python, data analysis, and machine learning algorithms</li>
   <li>Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)</li>
 </ul>
  
