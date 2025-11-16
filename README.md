@@ -1,6 +1,6 @@
 
 <p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/Header.png" alt = "Banner">
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner2049-ezgif.com-crop.gif" alt = "Banner" width = "100%">
 </p>
 
 <h2> About Me </h2>
