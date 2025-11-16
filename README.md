@@ -51,10 +51,6 @@
   Flask • HTML • CSS • JavaScript • SQL
   Git • GitHub • Docker • Kubernetes
 
-<p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner20492017directedbyDenisVilleneuve5_5-ezgif.com-crop.gif" width = "100%">
-</p>
-
 
 
 
