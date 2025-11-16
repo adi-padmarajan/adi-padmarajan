@@ -21,5 +21,5 @@
 </p>
 
 <p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner.gif" width = "100%">
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner-ezgif.com-crop.gif" width = "100%">
 </p>
