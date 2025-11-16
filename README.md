@@ -52,7 +52,7 @@
   Git • GitHub • Docker • Kubernetes
 
 <p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner20492017directedbyDenisVilleneuve3_51-ezgif.com-crop.gif" width = "100%">
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner20492017directedbyDenisVilleneuve5_5-ezgif.com-crop.gif" width = "100%">
 </p>
 
 
