@@ -21,7 +21,7 @@
 </p>
 
 <p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner-ezgif.com-crop.gif" width = "100%">
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner-ezgif.com-crop.gif" width = "100%" alt = "Blade Runner GIF">
 </p>
 
 <h2>Current Areas of Focus</h2>
@@ -32,6 +32,10 @@
 - **GenAI & LLMs:** NLP · GANs · RAG · Agentic AI · OpenAI APIs · Cursor AI · GitHub Copilot · Claude  
 - **Projects:** Finance · Healthcare · Media · Recommendation Systems · E-Commerce · GenAI Assistants · ML/DL Pipelines  
 - **AI Engineering Stack:** Flask · HTML/CSS/JS · SQL · Git/GitHub · Docker · Kubernetes
+
+<p>
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/NorthernLights.gif" width = "100%" alt = "Northern Lights">
+</p>
 
 
 
