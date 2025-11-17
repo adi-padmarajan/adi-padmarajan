@@ -20,9 +20,12 @@
        style="max-width: 100%;"/>
 </p>
 
-<p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner-ezgif.com-crop.gif" width = "100%" alt = "Blade Runner GIF">
-</p>
+<!--
+  <p>
+    <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner-ezgif.com-crop.gif" width = "100%" alt = "Blade Runner GIF">
+  </p>
+-->
+
 
 <h2>Current Areas of Focus</h2>
 
