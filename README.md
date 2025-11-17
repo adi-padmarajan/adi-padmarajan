@@ -34,7 +34,7 @@
 - **AI Engineering Stack:** Flask · HTML/CSS/JS · SQL · Git/GitHub · Docker · Kubernetes
 
 <p>
-  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/NorthernLights-ezgif.com-crop.gif" width = "100%" alt = "Northern Lights">
+  <img src = "https://github.com/adi-padmarajan/adi-padmarajan/blob/main/BladeRunner2049-ezgif.com-crop.gif" width = "100%" alt = "Blade Runner 2049">
 </p>
 
 
