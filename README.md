@@ -12,14 +12,6 @@
   <li>Fitness Enthusiast with 6 Full Marathons under my belt (PB: 3:26:00)</li>
 </ul>
  
-<h2> Tech Stack </h2>
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=java,c,python,js,html,css,react,tailwind,mysql,figma" 
-       alt="Tech Stack"
-       width=100%
-       style="max-width: 100%;"/>
-</p>
-
 <h2>Current Areas of Focus</h2>
 
 - **Data Visualization:** NumPy · Pandas · Matplotlib · Seaborn · EDA · Feature Engineering  
