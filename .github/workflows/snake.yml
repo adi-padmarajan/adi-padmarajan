@@ -1,0 +1,39 @@
+# Save at: .github/workflows/snake.yml
+# Generates the contribution-snake animation the README points at.
+# First run: Actions tab → "Generate Snake" → Run workflow.
+
+name: Generate Snake
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate snake
+        uses: Platane/snk@v3
+        id: snake
+        with:
+          github_user_name: adi-padmarajan
+          # Palette matched to the README: amber snake, dark cells with an
+          # amber ramp, so it reads as part of the same design in both
+          # GitHub light and dark mode.
+          outputs: |
+            dist/snake.svg?color_snake=%23FF8A3D&color_dots=%230B0F14,%23472408,%238A4A12,%23C2410C,%23FF8A3D
+
+      - name: Push to output branch
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
