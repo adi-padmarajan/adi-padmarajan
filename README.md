@@ -5,7 +5,6 @@
 <img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/banner.svg?v=2" alt="Aditya Padmarajan — Software Developer" width="100%" />
 
 
-
 <!--
 
 <a href="https://www.adityapadmarajan.com">
@@ -22,7 +21,7 @@
 -->
 
 </div>
-
+<br />
 
 <img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/identity.svg?v=1" width="100%" alt="Software Developer @ STEMCELL Technologies &#183; B.Sc. Computer Science, University of Victoria &#183; based in Vancouver, British Columbia" />
 
