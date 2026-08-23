@@ -36,12 +36,6 @@
 
 <br />
 
-```ts
-const aditya = {
-  role:      "Software Developer @ STEMCELL Technologies",
-  studying:  "B.Sc. Computer Science, University of Victoria",
-  based_in:  "Vancouver, British Columbia",
-};
-```
+<img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/identity.svg?v=1" width="100%" alt="Software Developer @ STEMCELL Technologies &#183; B.Sc. Computer Science, University of Victoria &#183; based in Vancouver, British Columbia" />
 
 <br />

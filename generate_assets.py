@@ -381,11 +381,214 @@ def button(label, icon, primary, idx):
 """
 
 
+# ── 6. IDENTITY DOSSIER ──────────────────────────────────────────────────────
+def identity():
+    """The whoami block as an ESPER-style case file instead of a plain code fence."""
+    STR = "#FFB27A"   # string literal — warm amber-bone
+
+    W = 1000
+    BAR = 36              # title bar height
+    X0, LEAD = 30, 25     # code gutter x, line height
+    KEY_X, VAL_X = 82, 178
+    y0 = BAR + 48
+
+    rows = [
+        ("open",),
+        ("pair", "role:",      "Software Developer @ STEMCELL Technologies"),
+        ("pair", "education:", "B.Sc. Computer Science, University of Victoria"),
+        ("pair", "based_in:",  "Vancouver, British Columbia"),
+        ("close",),
+        ("blank",),
+        ("note", "&#47;&#47; baseline &#8212; cells interlinked within cells interlinked"),
+    ]
+
+    code, ln = [], 1
+    for i, row in enumerate(rows):
+        y = y0 + i * LEAD
+        code.append(f'<text class="gut" x="{X0}" y="{y}">{ln:02d}</text>')
+        ln += 1
+        t = f'<text class="cd" xml:space="preserve" y="{y}">'
+        if row[0] == "open":
+            t += f'<tspan class="kw" x="64">const</tspan><tspan class="vr"> aditya</tspan><tspan class="op"> = {{</tspan>'
+        elif row[0] == "pair":
+            t += (f'<tspan class="ky" x="{KEY_X}">{row[1]}</tspan>'
+                  f'<tspan class="op" x="{VAL_X}">&quot;</tspan>'
+                  f'<tspan class="st">{row[2]}</tspan>'
+                  f'<tspan class="op">&quot;,</tspan>')
+        elif row[0] == "close":
+            t += '<tspan class="op" x="64">};</tspan>'
+        elif row[0] == "note":
+            t += f'<tspan class="cm" x="64">{row[1]}</tspan>'
+        else:
+            t += '<tspan x="64"> </tspan>'
+        code.append(t + "</text>")
+    # caret parks on the blank line under the closing brace
+    code.append(f'<rect class="car" x="64" y="{y0 + 5*LEAD - 11}" width="8.4" height="14"/>')
+    code = "\n  ".join(code)
+
+    H = y0 + (len(rows) - 1) * LEAD + 56
+    cx, cy = 716, (BAR + H) / 2 - 8
+
+    # iris spokes
+    spokes = "".join(
+        f'<line x1="0" y1="-15" x2="0" y2="-31" transform="rotate({i*22.5})"/>' for i in range(16)
+    )
+
+    # right-hand readout rows
+    reads = [("A-SYS", 0.93), ("DEV.LOOP", 0.78), ("SIGNAL", 0.61)]
+    ro = []
+    for i, (lbl, frac) in enumerate(reads):
+        ry = cy - 26 + i * 26
+        ro.append(f'<text class="rd" x="800" y="{ry}">{lbl}</text>')
+        ro.append(f'<rect x="884" y="{ry-8}" width="86" height="6" rx="1" fill="{VOID}" stroke="{LINE}"/>')
+        ro.append(f'<rect x="885" y="{ry-7}" width="{84*frac:.0f}" height="4" fill="{AMBER}" fill-opacity="{0.85 - i*0.18:.2f}"/>')
+    ro = "\n  ".join(ro)
+
+    # rain over the panel, faint
+    streaks = []
+    for _ in range(26):
+        rx, rl = random.randint(0, W), random.randint(14, 34)
+        streaks.append(
+            f'<line class="rn" x1="{rx}" y1="-{rl}" x2="{rx-6}" y2="0" '
+            f'stroke-opacity="{random.uniform(.06,.18):.2f}" '
+            f'style="animation-duration:{random.uniform(1.1,2.4):.2f}s;'
+            f'animation-delay:-{random.uniform(0,2.4):.2f}s"/>'
+        )
+    rain = "\n    ".join(streaks)
+
+    alt = ("Aditya Padmarajan — Software Developer at STEMCELL Technologies; "
+           "B.Sc. Computer Science, University of Victoria; based in Vancouver, British Columbia")
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{alt}">
+  <title>{alt}</title>
+  <defs>
+    <linearGradient id="ipnl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0D131A"/>
+      <stop offset="62%"  stop-color="{PANEL}"/>
+      <stop offset="100%" stop-color="{VOID}"/>
+    </linearGradient>
+    <linearGradient id="ibar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#131B24"/>
+      <stop offset="100%" stop-color="{PANEL}"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="{RUST}" stop-opacity=".55"/>
+      <stop offset="58%"  stop-color="{AMBER}" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="{VOID}"  stop-opacity=".9"/>
+    </radialGradient>
+    <linearGradient id="isweep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="{ICE}" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="{ICE}" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="{ICE}" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="iscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
+    </pattern>
+    <clipPath id="ipupil"><circle cx="{cx}" cy="{cy}" r="33"/></clipPath>
+    <clipPath id="iframe"><rect x="0" y="0" width="{W}" height="{H}" rx="3"/></clipPath>
+    <filter id="iglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .cd {{ font-family:{MONO}; font-size:14px; letter-spacing:.2px; }}
+    .gut{{ font-family:{MONO}; font-size:11px; fill:{ASH}; fill-opacity:.55; }}
+    .kw {{ fill:#FF5FA2; }}
+    .vr {{ fill:{BONE}; }}
+    .ky {{ fill:{ICE}; }}
+    .st {{ fill:{STR}; }}
+    .op {{ fill:{ASH}; }}
+    .cm {{ fill:{ASH}; fill-opacity:.68; font-style:italic; }}
+    .tab{{ font-family:{MONO}; font-size:12px; font-weight:700; letter-spacing:2.2px; fill:{BONE}; fill-opacity:.9; }}
+    .meta{{font-family:{MONO}; font-size:10.5px; letter-spacing:2.4px; fill:{ASH}; }}
+    .rd {{ font-family:{MONO}; font-size:10.5px; letter-spacing:2.2px; fill:{ASH}; }}
+    .vk {{ font-family:{MONO}; font-size:10px; letter-spacing:3px; fill:{AMBER}; fill-opacity:.85; }}
+    .car{{ fill:{ICE}; fill-opacity:.75; animation:icar 1.05s steps(1) infinite; }}
+    @keyframes icar {{ 0%,50% {{opacity:1}} 51%,100% {{opacity:0}} }}
+    .rn {{ stroke:{ICE}; stroke-width:1; animation-name:ifall; animation-timing-function:linear; animation-iteration-count:infinite; }}
+    @keyframes ifall {{ from {{transform:translateY(0)}} to {{transform:translateY({H+40}px)}} }}
+    .swp{{ animation:iswp 7s ease-in-out infinite; }}
+    @keyframes iswp {{ 0%,100% {{transform:translateY(-70px)}} 50% {{transform:translateY({H}px)}} }}
+    .dash{{ transform-origin:{cx}px {cy}px; animation:ispin 14s linear infinite; }}
+    @keyframes ispin {{ to {{transform:rotate(360deg)}} }}
+    .spk {{ transform-origin:{cx}px {cy}px; animation:ispin2 26s linear infinite; }}
+    @keyframes ispin2 {{ to {{transform:rotate(-360deg)}} }}
+    .iscan{{ animation:iris-scan 3.4s ease-in-out infinite; }}
+    @keyframes iris-scan {{ 0%,100% {{transform:translateY(-34px)}} 50% {{transform:translateY(34px)}} }}
+    .dot {{ animation:ipulse 2.2s ease-in-out infinite; }}
+    @keyframes ipulse {{ 0%,100% {{opacity:.25}} 50% {{opacity:1}} }}
+    @media (prefers-reduced-motion: reduce) {{
+      .car,.rn,.swp,.dash,.spk,.iscan,.dot {{ animation:none; }}
+      .rn {{ opacity:.18 }}
+    }}
+  </style>
+
+  <g clip-path="url(#iframe)">
+    <rect width="{W}" height="{H}" fill="url(#ipnl)"/>
+    {rain}
+
+    <!-- title bar -->
+    <rect width="{W}" height="{BAR}" fill="url(#ibar)"/>
+    <rect x="0" y="{BAR-1}" width="{W}" height="1" fill="{LINE}"/>
+    <circle cx="26" cy="{BAR/2:.0f}" r="3.6" fill="{AMBER}" class="dot"/>
+    <text class="tab" x="42" y="{BAR/2+4:.0f}">IDENTITY.TS</text>
+    <text class="meta" x="{W-30}" y="{BAR/2+4:.0f}" text-anchor="end">FILE 2049&#183;ADI&#183;01 &#183; CLEARANCE PUBLIC</text>
+
+    <!-- code -->
+    <rect x="0" y="{BAR}" width="3" height="{H-BAR}" fill="{AMBER}"/>
+    {code}
+
+    <!-- divider -->
+    <line x1="630" y1="{BAR+22}" x2="630" y2="{H-22}" stroke="{LINE}" stroke-width="1"/>
+
+    <!-- v-k iris -->
+    <g class="dash" fill="none" stroke="{AMBER}" stroke-opacity=".45" stroke-width="1.1">
+      <circle cx="{cx}" cy="{cy}" r="52" stroke-dasharray="3 9"/>
+    </g>
+    <circle cx="{cx}" cy="{cy}" r="44" fill="none" stroke="{AMBER}" stroke-opacity=".22" stroke-width="1"/>
+    <circle cx="{cx}" cy="{cy}" r="33" fill="url(#iris)"/>
+    <g class="spk" stroke="{AMBER}" stroke-opacity=".30" stroke-width="1" transform-origin="{cx} {cy}">
+      <g transform="translate({cx},{cy})">{spokes}</g>
+    </g>
+    <g clip-path="url(#ipupil)">
+      <rect class="iscan" x="{cx-33}" y="{cy-1.5}" width="66" height="3" fill="{ICE}" fill-opacity=".55"/>
+    </g>
+    <circle cx="{cx}" cy="{cy}" r="12.5" fill="{VOID}" stroke="{ICE}" stroke-opacity=".5"/>
+    <circle cx="{cx-4}" cy="{cy-4}" r="2.6" fill="{ICE}" fill-opacity=".9" filter="url(#iglow)"/>
+    <text class="vk" x="{cx}" y="{cy+70}" text-anchor="middle">V&#8722;K BASELINE</text>
+
+    <!-- readouts -->
+    {ro}
+    <text class="meta" x="800" y="{cy+70}">STATUS &#183; INTERLINKED</text>
+
+    <!-- footer -->
+    <text class="meta" x="64" y="{H-16}">49.28&#176;N 123.12&#176;W &#183; VANCOUVER SECTOR</text>
+    <text class="meta" x="{W-30}" y="{H-16}" text-anchor="end">&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9647;&#9647; STABLE</text>
+
+    <!-- hud corners -->
+    <g fill="none" stroke="{AMBER}" stroke-opacity=".55" stroke-width="1.2">
+      <path d="M14 {BAR+16} L14 {BAR+6} L24 {BAR+6}"/>
+      <path d="M{W-24} {BAR+6} L{W-14} {BAR+6} L{W-14} {BAR+16}"/>
+      <path d="M14 {H-16} L14 {H-6} L24 {H-6}"/>
+      <path d="M{W-24} {H-6} L{W-14} {H-6} L{W-14} {H-16}"/>
+    </g>
+
+    <!-- overlays -->
+    <rect class="swp" width="{W}" height="70" fill="url(#isweep)"/>
+    <rect width="{W}" height="{H}" fill="url(#iscan)"/>
+    <rect x="0.5" y="0.5" width="{W-1}" height="{H-1}" rx="3" fill="none" stroke="{AMBER}" stroke-opacity=".30"/>
+  </g>
+</svg>
+"""
+
+
 if __name__ == "__main__":
     print("Generating assets...")
     write("banner.svg", banner())
     write("divider.svg", divider())
     write("stack.svg", stack())
+    write("identity.svg", identity())
     for i, (cmd, note) in enumerate([
         ("whoami",   "IDENTITY"),
         ("trophies", "36-HOUR BUILDS"),

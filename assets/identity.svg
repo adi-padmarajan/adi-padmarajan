@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 290" width="1000" height="290" role="img" aria-label="Aditya Padmarajan — Software Developer at STEMCELL Technologies; B.Sc. Computer Science, University of Victoria; based in Vancouver, British Columbia">
+  <title>Aditya Padmarajan — Software Developer at STEMCELL Technologies; B.Sc. Computer Science, University of Victoria; based in Vancouver, British Columbia</title>
+  <defs>
+    <linearGradient id="ipnl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0D131A"/>
+      <stop offset="62%"  stop-color="#0B0F14"/>
+      <stop offset="100%" stop-color="#07090C"/>
+    </linearGradient>
+    <linearGradient id="ibar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#131B24"/>
+      <stop offset="100%" stop-color="#0B0F14"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#C2410C" stop-opacity=".55"/>
+      <stop offset="58%"  stop-color="#FF8A3D" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#07090C"  stop-opacity=".9"/>
+    </radialGradient>
+    <linearGradient id="isweep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#22D3EE" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#22D3EE" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="iscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
+    </pattern>
+    <clipPath id="ipupil"><circle cx="716" cy="155.0" r="33"/></clipPath>
+    <clipPath id="iframe"><rect x="0" y="0" width="1000" height="290" rx="3"/></clipPath>
+    <filter id="iglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .cd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:14px; letter-spacing:.2px; }
+    .gut{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; fill:#5A6672; fill-opacity:.55; }
+    .kw { fill:#FF5FA2; }
+    .vr { fill:#E8E3D9; }
+    .ky { fill:#22D3EE; }
+    .st { fill:#FFB27A; }
+    .op { fill:#5A6672; }
+    .cm { fill:#5A6672; fill-opacity:.68; font-style:italic; }
+    .tab{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:12px; font-weight:700; letter-spacing:2.2px; fill:#E8E3D9; fill-opacity:.9; }
+    .meta{font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.4px; fill:#5A6672; }
+    .rd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.2px; fill:#5A6672; }
+    .vk { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10px; letter-spacing:3px; fill:#FF8A3D; fill-opacity:.85; }
+    .car{ fill:#22D3EE; fill-opacity:.75; animation:icar 1.05s steps(1) infinite; }
+    @keyframes icar { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+    .rn { stroke:#22D3EE; stroke-width:1; animation-name:ifall; animation-timing-function:linear; animation-iteration-count:infinite; }
+    @keyframes ifall { from {transform:translateY(0)} to {transform:translateY(330px)} }
+    .swp{ animation:iswp 7s ease-in-out infinite; }
+    @keyframes iswp { 0%,100% {transform:translateY(-70px)} 50% {transform:translateY(290px)} }
+    .dash{ transform-origin:716px 155.0px; animation:ispin 14s linear infinite; }
+    @keyframes ispin { to {transform:rotate(360deg)} }
+    .spk { transform-origin:716px 155.0px; animation:ispin2 26s linear infinite; }
+    @keyframes ispin2 { to {transform:rotate(-360deg)} }
+    .iscan{ animation:iris-scan 3.4s ease-in-out infinite; }
+    @keyframes iris-scan { 0%,100% {transform:translateY(-34px)} 50% {transform:translateY(34px)} }
+    .dot { animation:ipulse 2.2s ease-in-out infinite; }
+    @keyframes ipulse { 0%,100% {opacity:.25} 50% {opacity:1} }
+    @media (prefers-reduced-motion: reduce) {
+      .car,.rn,.swp,.dash,.spk,.iscan,.dot { animation:none; }
+      .rn { opacity:.18 }
+    }
+  </style>
+
+  <g clip-path="url(#iframe)">
+    <rect width="1000" height="290" fill="url(#ipnl)"/>
+    <line class="rn" x1="542" y1="-28" x2="536" y2="0" stroke-opacity="0.08" style="animation-duration:1.12s;animation-delay:-2.08s"/>
+    <line class="rn" x1="851" y1="-24" x2="845" y2="0" stroke-opacity="0.08" style="animation-duration:2.30s;animation-delay:-2.35s"/>
+    <line class="rn" x1="252" y1="-31" x2="246" y2="0" stroke-opacity="0.13" style="animation-duration:1.93s;animation-delay:-0.57s"/>
+    <line class="rn" x1="219" y1="-20" x2="213" y2="0" stroke-opacity="0.09" style="animation-duration:2.19s;animation-delay:-1.29s"/>
+    <line class="rn" x1="903" y1="-23" x2="897" y2="0" stroke-opacity="0.14" style="animation-duration:1.45s;animation-delay:-0.41s"/>
+    <line class="rn" x1="368" y1="-16" x2="362" y2="0" stroke-opacity="0.12" style="animation-duration:1.54s;animation-delay:-1.94s"/>
+    <line class="rn" x1="637" y1="-21" x2="631" y2="0" stroke-opacity="0.18" style="animation-duration:1.70s;animation-delay:-2.17s"/>
+    <line class="rn" x1="759" y1="-22" x2="753" y2="0" stroke-opacity="0.13" style="animation-duration:1.62s;animation-delay:-2.21s"/>
+    <line class="rn" x1="482" y1="-33" x2="476" y2="0" stroke-opacity="0.15" style="animation-duration:1.69s;animation-delay:-1.57s"/>
+    <line class="rn" x1="909" y1="-30" x2="903" y2="0" stroke-opacity="0.13" style="animation-duration:2.04s;animation-delay:-1.20s"/>
+    <line class="rn" x1="533" y1="-26" x2="527" y2="0" stroke-opacity="0.15" style="animation-duration:1.59s;animation-delay:-0.60s"/>
+    <line class="rn" x1="987" y1="-31" x2="981" y2="0" stroke-opacity="0.14" style="animation-duration:1.94s;animation-delay:-1.01s"/>
+    <line class="rn" x1="191" y1="-31" x2="185" y2="0" stroke-opacity="0.17" style="animation-duration:1.52s;animation-delay:-2.21s"/>
+    <line class="rn" x1="798" y1="-31" x2="792" y2="0" stroke-opacity="0.18" style="animation-duration:1.14s;animation-delay:-2.02s"/>
+    <line class="rn" x1="1000" y1="-15" x2="994" y2="0" stroke-opacity="0.12" style="animation-duration:1.90s;animation-delay:-2.00s"/>
+    <line class="rn" x1="368" y1="-22" x2="362" y2="0" stroke-opacity="0.15" style="animation-duration:1.22s;animation-delay:-0.62s"/>
+    <line class="rn" x1="837" y1="-21" x2="831" y2="0" stroke-opacity="0.08" style="animation-duration:2.01s;animation-delay:-0.76s"/>
+    <line class="rn" x1="743" y1="-16" x2="737" y2="0" stroke-opacity="0.07" style="animation-duration:1.90s;animation-delay:-2.39s"/>
+    <line class="rn" x1="254" y1="-14" x2="248" y2="0" stroke-opacity="0.07" style="animation-duration:2.05s;animation-delay:-2.36s"/>
+    <line class="rn" x1="347" y1="-21" x2="341" y2="0" stroke-opacity="0.17" style="animation-duration:2.04s;animation-delay:-0.60s"/>
+    <line class="rn" x1="857" y1="-15" x2="851" y2="0" stroke-opacity="0.09" style="animation-duration:1.12s;animation-delay:-0.07s"/>
+    <line class="rn" x1="334" y1="-34" x2="328" y2="0" stroke-opacity="0.07" style="animation-duration:1.69s;animation-delay:-0.10s"/>
+    <line class="rn" x1="715" y1="-33" x2="709" y2="0" stroke-opacity="0.08" style="animation-duration:2.23s;animation-delay:-0.26s"/>
+    <line class="rn" x1="945" y1="-19" x2="939" y2="0" stroke-opacity="0.12" style="animation-duration:1.96s;animation-delay:-2.21s"/>
+    <line class="rn" x1="402" y1="-26" x2="396" y2="0" stroke-opacity="0.16" style="animation-duration:1.82s;animation-delay:-0.08s"/>
+    <line class="rn" x1="550" y1="-26" x2="544" y2="0" stroke-opacity="0.17" style="animation-duration:1.55s;animation-delay:-1.92s"/>
+
+    <!-- title bar -->
+    <rect width="1000" height="36" fill="url(#ibar)"/>
+    <rect x="0" y="35" width="1000" height="1" fill="#1C2530"/>
+    <circle cx="26" cy="18" r="3.6" fill="#FF8A3D" class="dot"/>
+    <text class="tab" x="42" y="22">IDENTITY.TS</text>
+    <text class="meta" x="970" y="22" text-anchor="end">FILE 2049&#183;ADI&#183;01 &#183; CLEARANCE PUBLIC</text>
+
+    <!-- code -->
+    <rect x="0" y="36" width="3" height="254" fill="#FF8A3D"/>
+    <text class="gut" x="30" y="84">01</text>
+  <text class="cd" xml:space="preserve" y="84"><tspan class="kw" x="64">const</tspan><tspan class="vr"> aditya</tspan><tspan class="op"> = {</tspan></text>
+  <text class="gut" x="30" y="109">02</text>
+  <text class="cd" xml:space="preserve" y="109"><tspan class="ky" x="82">role:</tspan><tspan class="op" x="178">&quot;</tspan><tspan class="st">Software Developer @ STEMCELL Technologies</tspan><tspan class="op">&quot;,</tspan></text>
+  <text class="gut" x="30" y="134">03</text>
+  <text class="cd" xml:space="preserve" y="134"><tspan class="ky" x="82">education:</tspan><tspan class="op" x="178">&quot;</tspan><tspan class="st">B.Sc. Computer Science, University of Victoria</tspan><tspan class="op">&quot;,</tspan></text>
+  <text class="gut" x="30" y="159">04</text>
+  <text class="cd" xml:space="preserve" y="159"><tspan class="ky" x="82">based_in:</tspan><tspan class="op" x="178">&quot;</tspan><tspan class="st">Vancouver, British Columbia</tspan><tspan class="op">&quot;,</tspan></text>
+  <text class="gut" x="30" y="184">05</text>
+  <text class="cd" xml:space="preserve" y="184"><tspan class="op" x="64">};</tspan></text>
+  <text class="gut" x="30" y="209">06</text>
+  <text class="cd" xml:space="preserve" y="209"><tspan x="64"> </tspan></text>
+  <text class="gut" x="30" y="234">07</text>
+  <text class="cd" xml:space="preserve" y="234"><tspan class="cm" x="64">&#47;&#47; baseline &#8212; cells interlinked within cells interlinked</tspan></text>
+  <rect class="car" x="64" y="198" width="8.4" height="14"/>
+
+    <!-- divider -->
+    <line x1="630" y1="58" x2="630" y2="268" stroke="#1C2530" stroke-width="1"/>
+
+    <!-- v-k iris -->
+    <g class="dash" fill="none" stroke="#FF8A3D" stroke-opacity=".45" stroke-width="1.1">
+      <circle cx="716" cy="155.0" r="52" stroke-dasharray="3 9"/>
+    </g>
+    <circle cx="716" cy="155.0" r="44" fill="none" stroke="#FF8A3D" stroke-opacity=".22" stroke-width="1"/>
+    <circle cx="716" cy="155.0" r="33" fill="url(#iris)"/>
+    <g class="spk" stroke="#FF8A3D" stroke-opacity=".30" stroke-width="1" transform-origin="716 155.0">
+      <g transform="translate(716,155.0)"><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(0.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(22.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(45.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(67.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(90.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(112.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(135.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(157.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(180.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(202.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(225.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(247.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(270.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(292.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(315.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(337.5)"/></g>
+    </g>
+    <g clip-path="url(#ipupil)">
+      <rect class="iscan" x="683" y="153.5" width="66" height="3" fill="#22D3EE" fill-opacity=".55"/>
+    </g>
+    <circle cx="716" cy="155.0" r="12.5" fill="#07090C" stroke="#22D3EE" stroke-opacity=".5"/>
+    <circle cx="712" cy="151.0" r="2.6" fill="#22D3EE" fill-opacity=".9" filter="url(#iglow)"/>
+    <text class="vk" x="716" y="225.0" text-anchor="middle">V&#8722;K BASELINE</text>
+
+    <!-- readouts -->
+    <text class="rd" x="800" y="129.0">A-SYS</text>
+  <rect x="884" y="121.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
+  <rect x="885" y="122.0" width="78" height="4" fill="#FF8A3D" fill-opacity="0.85"/>
+  <text class="rd" x="800" y="155.0">DEV.LOOP</text>
+  <rect x="884" y="147.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
+  <rect x="885" y="148.0" width="66" height="4" fill="#FF8A3D" fill-opacity="0.67"/>
+  <text class="rd" x="800" y="181.0">SIGNAL</text>
+  <rect x="884" y="173.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
+  <rect x="885" y="174.0" width="51" height="4" fill="#FF8A3D" fill-opacity="0.49"/>
+    <text class="meta" x="800" y="225.0">STATUS &#183; INTERLINKED</text>
+
+    <!-- footer -->
+    <text class="meta" x="64" y="274">49.28&#176;N 123.12&#176;W &#183; VANCOUVER SECTOR</text>
+    <text class="meta" x="970" y="274" text-anchor="end">&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9647;&#9647; STABLE</text>
+
+    <!-- hud corners -->
+    <g fill="none" stroke="#FF8A3D" stroke-opacity=".55" stroke-width="1.2">
+      <path d="M14 52 L14 42 L24 42"/>
+      <path d="M976 42 L986 42 L986 52"/>
+      <path d="M14 274 L14 284 L24 284"/>
+      <path d="M976 284 L986 284 L986 274"/>
+    </g>
+
+    <!-- overlays -->
+    <rect class="swp" width="1000" height="70" fill="url(#isweep)"/>
+    <rect width="1000" height="290" fill="url(#iscan)"/>
+    <rect x="0.5" y="0.5" width="999" height="289" rx="3" fill="none" stroke="#FF8A3D" stroke-opacity=".30"/>
+  </g>
+</svg>
