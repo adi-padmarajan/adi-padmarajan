@@ -30,15 +30,12 @@
 
 
 
-<a href="https://www.adityapadmarajan.com">
-  <img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-portfolio.svg?v=1" height="42" alt="Portfolio"/>
-</a>
+<div align="center">
 
-<a href="https://www.linkedin.com/in/aditya-padmarajan">
-  <img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-linkedin.svg?v=1" height="42" alt="LinkedIn"/>
-</a>
+<!-- equal widths keep the three channels tiled as one row; no blank lines between them -->
+<a href="https://www.adityapadmarajan.com"><img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-portfolio.svg?v=2" width="32%" alt="Portfolio &#8212; adityapadmarajan.com" /></a>
+<a href="https://www.linkedin.com/in/aditya-padmarajan"><img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-linkedin.svg?v=2" width="32%" alt="LinkedIn &#8212; in/aditya-padmarajan" /></a>
+<a href="mailto:aditya.padmarajan@gmail.com"><img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-email.svg?v=2" width="32%" alt="Email &#8212; aditya.padmarajan@gmail.com" /></a>
 
-<a href="mailto:aditya.padmarajan@gmail.com">
-  <img src="https://raw.githubusercontent.com/adi-padmarajan/adi-padmarajan/main/assets/btn-email.svg?v=1" height="42" alt="Email"/>
-</a>
+</div>
 

@@ -1,18 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 129 46" width="129" height="46" role="img" aria-label="EMAIL">
-  <title>EMAIL</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 104" width="340" height="104" role="img" aria-label="EMAIL — aditya.padmarajan@gmail.com">
+  <title>EMAIL &#8212; aditya.padmarajan@gmail.com</title>
   <defs>
-    <linearGradient id="bg22" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111922"/><stop offset="100%" stop-color="#0B0F14"/>
+    <linearGradient id="bg32" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0D131A"/>
+      <stop offset="64%"  stop-color="#0B0F14"/>
+      <stop offset="100%" stop-color="#07090C"/>
     </linearGradient>
+    <linearGradient id="rule32" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#FF8A3D" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#FF8A3D" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="swp32" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#22D3EE" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#22D3EE" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="sc32" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
+    </pattern>
+    <clipPath id="fr32"><rect width="340" height="104" rx="3"/></clipPath>
   </defs>
   <style>
-    .t22 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:13px; font-weight:600; letter-spacing:1.9px; fill:#E8E3D9; }
-    .sh22 { animation:sh22 5s ease-in-out infinite; }
-    @keyframes sh22 { 0%,100% {opacity:.30} 50% {opacity:.85} }
-    @media (prefers-reduced-motion: reduce) { .sh22 { animation:none; } }
+    .lb32 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:15px; font-weight:700; letter-spacing:2.6px; fill:#E8E3D9; }
+    .tg32 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:.9px; fill:#5A6672; }
+    .ch32 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:9.5px; letter-spacing:2.4px; fill:#5A6672; fill-opacity:.8; }
+    .ar32 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:19px; font-weight:700; fill:#FF8A3D; animation:ar32 2.6s ease-in-out infinite; }
+    @keyframes ar32 { 0%,100% {transform:translateX(0);opacity:.55} 50% {transform:translateX(4px);opacity:1} }
+    .dt32 { animation:dt32 2.4s ease-in-out infinite; }
+    @keyframes dt32 { 0%,100% {opacity:.25} 50% {opacity:1} }
+    .rn32 { stroke:#22D3EE; stroke-width:1; animation-name:fl32; animation-timing-function:linear; animation-iteration-count:infinite; }
+    @keyframes fl32 { from {transform:translateY(0)} to {transform:translateY(134px)} }
+    .sw32 { animation:sw32 9s ease-in-out infinite; animation-delay:-6s; }
+    @keyframes sw32 { 0%,100% {transform:translateY(-60px)} 50% {transform:translateY(104px)} }
+    .bar32 { animation:bar32 5s ease-in-out infinite; animation-delay:-2s; }
+    @keyframes bar32 { 0%,100% {opacity:.35} 50% {opacity:.95} }
+    @media (prefers-reduced-motion: reduce) {
+      .ar32,.dt32,.rn32,.sw32,.bar32 { animation:none; }
+      .rn32 { opacity:.16 }
+    }
   </style>
-  <rect x="1" y="1" width="127" height="44" rx="3" fill="url(#bg22)" stroke="#22D3EE" stroke-opacity=".34"/>
-  <rect class="sh22" x="1" y="1" width="2.5" height="44" fill="#22D3EE"/>
-  <g transform="translate(24,14)" stroke="#22D3EE" stroke-width="1.3" fill="none" stroke-linecap="round"><rect x="1" y="3" width="16" height="12" rx="1.5"/><path d="M1.6 4.2 9 10l7.4-5.8"/></g>
-  <text class="t22" x="52" y="28">EMAIL</text>
+
+  <g clip-path="url(#fr32)">
+    <rect width="340" height="104" fill="url(#bg32)"/>
+    <rect width="340" height="104" fill="#FF8A3D" fill-opacity=".03"/>
+    <line class="rn32" x1="169" y1="-18" x2="164" y2="0" stroke-opacity="0.16" style="animation-duration:2.10s;animation-delay:-0.65s"/>
+    <line class="rn32" x1="94" y1="-20" x2="89" y2="0" stroke-opacity="0.09" style="animation-duration:1.85s;animation-delay:-1.69s"/>
+    <line class="rn32" x1="25" y1="-12" x2="20" y2="0" stroke-opacity="0.07" style="animation-duration:2.30s;animation-delay:-1.42s"/>
+    <line class="rn32" x1="82" y1="-18" x2="77" y2="0" stroke-opacity="0.08" style="animation-duration:1.86s;animation-delay:-1.93s"/>
+    <line class="rn32" x1="303" y1="-10" x2="298" y2="0" stroke-opacity="0.13" style="animation-duration:1.24s;animation-delay:-1.46s"/>
+    <line class="rn32" x1="69" y1="-25" x2="64" y2="0" stroke-opacity="0.10" style="animation-duration:2.60s;animation-delay:-0.07s"/>
+    <line class="rn32" x1="240" y1="-18" x2="235" y2="0" stroke-opacity="0.13" style="animation-duration:2.51s;animation-delay:-1.83s"/>
+
+    <!-- accent rail + bottom rule -->
+    <rect class="bar32" x="0" y="0" width="3" height="104" fill="#FF8A3D"/>
+    <rect x="0" y="103" width="340" height="1" fill="url(#rule32)"/>
+
+    <!-- channel tag -->
+    <text class="ch32" x="308" y="26" text-anchor="end">CH.03</text>
+    <circle class="dt32" cx="320" cy="22" r="3.2" fill="#FF8A3D"/>
+
+    <!-- icon well -->
+    <rect x="20" y="34" width="36" height="36" rx="3"
+          fill="#07090C" stroke="#FF8A3D" stroke-opacity=".30"/>
+    <g transform="translate(29,43)"
+       stroke="#22D3EE" stroke-width="1.3" fill="none" stroke-linecap="round"><rect x="1" y="3" width="16" height="12" rx="1.5"/><path d="M1.6 4.2 9 10l7.4-5.8"/></g>
+
+    <!-- label + target -->
+    <text class="lb32" x="74" y="50">EMAIL</text>
+    <text class="tg32" x="74" y="68">aditya.padmarajan@gmail.com</text>
+
+    <!-- enter arrow -->
+    <text class="ar32" x="318" y="65" text-anchor="end">&#8250;</text>
+
+    <!-- hud corners -->
+    <g fill="none" stroke="#FF8A3D" stroke-opacity=".45" stroke-width="1.2">
+      <path d="M10 22 L10 12 L20 12"/>
+      <path d="M320 92 L330 92 L330 82"/>
+    </g>
+
+    <!-- overlays -->
+    <rect class="sw32" width="340" height="60" fill="url(#swp32)"/>
+    <rect width="340" height="104" fill="url(#sc32)"/>
+    <rect x="0.5" y="0.5" width="339" height="103" rx="3" fill="none"
+          stroke="#FF8A3D" stroke-opacity=".30"/>
+  </g>
 </svg>

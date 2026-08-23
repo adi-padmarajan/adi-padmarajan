@@ -348,7 +348,9 @@ def stack():
 """
 
 
-# ── 5. LINK BUTTONS ──────────────────────────────────────────────────────────
+# ── 5. LINK CARDS ────────────────────────────────────────────────────────────
+# Drawn on the same 18x18 grid, wireframe stroke — no filled brand marks, so the
+# trio stays in the same visual language as the banner and the identity panel.
 ICONS = {
     "globe": '<circle cx="9" cy="9" r="8"/><ellipse cx="9" cy="9" rx="3.6" ry="8"/><path d="M1.4 6h15.2M1.4 12h15.2"/>',
     "link":  '<path d="M7 11a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 1 0-5.7-5.7L8.2 4"/><path d="M11 7a4 4 0 0 0-5.7 0L2.7 9.6a4 4 0 1 0 5.7 5.7L9.8 14"/>',
@@ -356,30 +358,110 @@ ICONS = {
 }
 
 
-def button(label, icon, primary, idx):
-    W, H = 52 + int(len(label) * 10.6) + 24, 46
-    accent = AMBER if primary else ICE
-    border_op = ".62" if primary else ".34"
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label}">
-  <title>{label}</title>
+def card(label, target, icon, channel, primary, idx):
+    """One console channel. Every card is the same 340x104 so the row tiles."""
+    W, H = 340, 104
+    i = 30 + idx
+
+    box_x, box_y, box = 20, 34, 36          # icon well
+    tx = box_x + box + 18                   # text column
+
+    border_op = ".58" if primary else ".30"
+    tint_op   = ".07" if primary else ".03"
+
+    streaks = []
+    for _ in range(7):
+        rx, rl = random.randint(0, W), random.randint(10, 26)
+        streaks.append(
+            f'<line class="rn{i}" x1="{rx}" y1="-{rl}" x2="{rx-5}" y2="0" '
+            f'stroke-opacity="{random.uniform(.06,.16):.2f}" '
+            f'style="animation-duration:{random.uniform(1.2,2.6):.2f}s;'
+            f'animation-delay:-{random.uniform(0,2.6):.2f}s"/>'
+        )
+    rain = "\n    ".join(streaks)
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label} — {target}">
+  <title>{label} &#8212; {target}</title>
   <defs>
-    <linearGradient id="bg{idx}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111922"/><stop offset="100%" stop-color="{PANEL}"/>
+    <linearGradient id="bg{i}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0D131A"/>
+      <stop offset="64%"  stop-color="{PANEL}"/>
+      <stop offset="100%" stop-color="{VOID}"/>
     </linearGradient>
+    <linearGradient id="rule{i}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="{AMBER}" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="{AMBER}" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="swp{i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="{ICE}" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="{ICE}" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="{ICE}" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="sc{i}" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
+    </pattern>
+    <clipPath id="fr{i}"><rect width="{W}" height="{H}" rx="3"/></clipPath>
   </defs>
   <style>
-    .t{idx} {{ font-family:{MONO}; font-size:13px; font-weight:600; letter-spacing:1.9px; fill:{BONE}; }}
-    .sh{idx} {{ animation:sh{idx} 5s ease-in-out infinite; }}
-    @keyframes sh{idx} {{ 0%,100% {{opacity:.30}} 50% {{opacity:.85}} }}
-    @media (prefers-reduced-motion: reduce) {{ .sh{idx} {{ animation:none; }} }}
+    .lb{i} {{ font-family:{MONO}; font-size:15px; font-weight:700; letter-spacing:2.6px; fill:{BONE}; }}
+    .tg{i} {{ font-family:{MONO}; font-size:10.5px; letter-spacing:.9px; fill:{ASH}; }}
+    .ch{i} {{ font-family:{MONO}; font-size:9.5px; letter-spacing:2.4px; fill:{ASH}; fill-opacity:.8; }}
+    .ar{i} {{ font-family:{MONO}; font-size:19px; font-weight:700; fill:{AMBER}; animation:ar{i} 2.6s ease-in-out infinite; }}
+    @keyframes ar{i} {{ 0%,100% {{transform:translateX(0);opacity:.55}} 50% {{transform:translateX(4px);opacity:1}} }}
+    .dt{i} {{ animation:dt{i} 2.4s ease-in-out infinite; }}
+    @keyframes dt{i} {{ 0%,100% {{opacity:.25}} 50% {{opacity:1}} }}
+    .rn{i} {{ stroke:{ICE}; stroke-width:1; animation-name:fl{i}; animation-timing-function:linear; animation-iteration-count:infinite; }}
+    @keyframes fl{i} {{ from {{transform:translateY(0)}} to {{transform:translateY({H+30}px)}} }}
+    .sw{i} {{ animation:sw{i} 9s ease-in-out infinite; animation-delay:-{idx*3}s; }}
+    @keyframes sw{i} {{ 0%,100% {{transform:translateY(-60px)}} 50% {{transform:translateY({H}px)}} }}
+    .bar{i} {{ animation:bar{i} 5s ease-in-out infinite; animation-delay:-{idx}s; }}
+    @keyframes bar{i} {{ 0%,100% {{opacity:.35}} 50% {{opacity:.95}} }}
+    @media (prefers-reduced-motion: reduce) {{
+      .ar{i},.dt{i},.rn{i},.sw{i},.bar{i} {{ animation:none; }}
+      .rn{i} {{ opacity:.16 }}
+    }}
   </style>
-  <rect x="1" y="1" width="{W-2}" height="{H-2}" rx="3" fill="url(#bg{idx})" stroke="{accent}" stroke-opacity="{border_op}"/>
-  <rect class="sh{idx}" x="1" y="1" width="2.5" height="{H-2}" fill="{accent}"/>
-  <g transform="translate(24,14)" stroke="{accent}" stroke-width="1.3" fill="none" stroke-linecap="round">{ICONS[icon]}</g>
-  <text class="t{idx}" x="52" y="{H/2+4.5:.0f}">{label}</text>
+
+  <g clip-path="url(#fr{i})">
+    <rect width="{W}" height="{H}" fill="url(#bg{i})"/>
+    <rect width="{W}" height="{H}" fill="{AMBER}" fill-opacity="{tint_op}"/>
+    {rain}
+
+    <!-- accent rail + bottom rule -->
+    <rect class="bar{i}" x="0" y="0" width="3" height="{H}" fill="{AMBER}"/>
+    <rect x="0" y="{H-1}" width="{W}" height="1" fill="url(#rule{i})"/>
+
+    <!-- channel tag -->
+    <text class="ch{i}" x="{W-32}" y="26" text-anchor="end">{channel}</text>
+    <circle class="dt{i}" cx="{W-20}" cy="22" r="3.2" fill="{AMBER}"/>
+
+    <!-- icon well -->
+    <rect x="{box_x}" y="{box_y}" width="{box}" height="{box}" rx="3"
+          fill="{VOID}" stroke="{AMBER}" stroke-opacity="{border_op}"/>
+    <g transform="translate({box_x + box/2 - 9:.0f},{box_y + box/2 - 9:.0f})"
+       stroke="{ICE}" stroke-width="1.3" fill="none" stroke-linecap="round">{ICONS[icon]}</g>
+
+    <!-- label + target -->
+    <text class="lb{i}" x="{tx}" y="{box_y+16}">{label}</text>
+    <text class="tg{i}" x="{tx}" y="{box_y+34}">{target}</text>
+
+    <!-- enter arrow -->
+    <text class="ar{i}" x="{W-22}" y="{H/2+13:.0f}" text-anchor="end">&#8250;</text>
+
+    <!-- hud corners -->
+    <g fill="none" stroke="{AMBER}" stroke-opacity=".45" stroke-width="1.2">
+      <path d="M10 22 L10 12 L20 12"/>
+      <path d="M{W-20} {H-12} L{W-10} {H-12} L{W-10} {H-22}"/>
+    </g>
+
+    <!-- overlays -->
+    <rect class="sw{i}" width="{W}" height="60" fill="url(#swp{i})"/>
+    <rect width="{W}" height="{H}" fill="url(#sc{i})"/>
+    <rect x="0.5" y="0.5" width="{W-1}" height="{H-1}" rx="3" fill="none"
+          stroke="{AMBER}" stroke-opacity="{border_op}"/>
+  </g>
 </svg>
 """
-
 
 # ── 6. IDENTITY DOSSIER ──────────────────────────────────────────────────────
 def identity():
@@ -597,10 +679,10 @@ if __name__ == "__main__":
         ("now",      "CURRENT STATE"),
     ]):
         write(f"hdr-{cmd}.svg", header(cmd, note, i))
-    for j, (fn, label, icon, primary) in enumerate([
-        ("btn-portfolio", "PORTFOLIO", "globe", True),
-        ("btn-linkedin",  "LINKEDIN",  "link",  False),
-        ("btn-email",     "EMAIL",     "mail",  False),
+    for j, (fn, label, target, icon, chan, primary) in enumerate([
+        ("btn-portfolio", "PORTFOLIO", "adityapadmarajan.com",        "globe", "CH.01", True),
+        ("btn-linkedin",  "LINKEDIN",  "in/aditya-padmarajan",        "link",  "CH.02", False),
+        ("btn-email",     "EMAIL",     "aditya.padmarajan@gmail.com", "mail",  "CH.03", False),
     ]):
-        write(f"{fn}.svg", button(label, icon, primary, 20 + j))
+        write(f"{fn}.svg", card(label, target, icon, chan, primary, j))
     print("Done.")

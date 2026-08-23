@@ -1,18 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 171 46" width="171" height="46" role="img" aria-label="PORTFOLIO">
-  <title>PORTFOLIO</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 104" width="340" height="104" role="img" aria-label="PORTFOLIO — adityapadmarajan.com">
+  <title>PORTFOLIO &#8212; adityapadmarajan.com</title>
   <defs>
-    <linearGradient id="bg20" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111922"/><stop offset="100%" stop-color="#0B0F14"/>
+    <linearGradient id="bg30" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0D131A"/>
+      <stop offset="64%"  stop-color="#0B0F14"/>
+      <stop offset="100%" stop-color="#07090C"/>
     </linearGradient>
+    <linearGradient id="rule30" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#FF8A3D" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#FF8A3D" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="swp30" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#22D3EE" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#22D3EE" stop-opacity=".10"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="sc30" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
+    </pattern>
+    <clipPath id="fr30"><rect width="340" height="104" rx="3"/></clipPath>
   </defs>
   <style>
-    .t20 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:13px; font-weight:600; letter-spacing:1.9px; fill:#E8E3D9; }
-    .sh20 { animation:sh20 5s ease-in-out infinite; }
-    @keyframes sh20 { 0%,100% {opacity:.30} 50% {opacity:.85} }
-    @media (prefers-reduced-motion: reduce) { .sh20 { animation:none; } }
+    .lb30 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:15px; font-weight:700; letter-spacing:2.6px; fill:#E8E3D9; }
+    .tg30 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:.9px; fill:#5A6672; }
+    .ch30 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:9.5px; letter-spacing:2.4px; fill:#5A6672; fill-opacity:.8; }
+    .ar30 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:19px; font-weight:700; fill:#FF8A3D; animation:ar30 2.6s ease-in-out infinite; }
+    @keyframes ar30 { 0%,100% {transform:translateX(0);opacity:.55} 50% {transform:translateX(4px);opacity:1} }
+    .dt30 { animation:dt30 2.4s ease-in-out infinite; }
+    @keyframes dt30 { 0%,100% {opacity:.25} 50% {opacity:1} }
+    .rn30 { stroke:#22D3EE; stroke-width:1; animation-name:fl30; animation-timing-function:linear; animation-iteration-count:infinite; }
+    @keyframes fl30 { from {transform:translateY(0)} to {transform:translateY(134px)} }
+    .sw30 { animation:sw30 9s ease-in-out infinite; animation-delay:-0s; }
+    @keyframes sw30 { 0%,100% {transform:translateY(-60px)} 50% {transform:translateY(104px)} }
+    .bar30 { animation:bar30 5s ease-in-out infinite; animation-delay:-0s; }
+    @keyframes bar30 { 0%,100% {opacity:.35} 50% {opacity:.95} }
+    @media (prefers-reduced-motion: reduce) {
+      .ar30,.dt30,.rn30,.sw30,.bar30 { animation:none; }
+      .rn30 { opacity:.16 }
+    }
   </style>
-  <rect x="1" y="1" width="169" height="44" rx="3" fill="url(#bg20)" stroke="#FF8A3D" stroke-opacity=".62"/>
-  <rect class="sh20" x="1" y="1" width="2.5" height="44" fill="#FF8A3D"/>
-  <g transform="translate(24,14)" stroke="#FF8A3D" stroke-width="1.3" fill="none" stroke-linecap="round"><circle cx="9" cy="9" r="8"/><ellipse cx="9" cy="9" rx="3.6" ry="8"/><path d="M1.4 6h15.2M1.4 12h15.2"/></g>
-  <text class="t20" x="52" y="28">PORTFOLIO</text>
+
+  <g clip-path="url(#fr30)">
+    <rect width="340" height="104" fill="url(#bg30)"/>
+    <rect width="340" height="104" fill="#FF8A3D" fill-opacity=".07"/>
+    <line class="rn30" x1="12" y1="-22" x2="7" y2="0" stroke-opacity="0.15" style="animation-duration:2.02s;animation-delay:-2.07s"/>
+    <line class="rn30" x1="143" y1="-19" x2="138" y2="0" stroke-opacity="0.14" style="animation-duration:1.62s;animation-delay:-1.06s"/>
+    <line class="rn30" x1="111" y1="-13" x2="106" y2="0" stroke-opacity="0.09" style="animation-duration:1.41s;animation-delay:-0.44s"/>
+    <line class="rn30" x1="18" y1="-26" x2="13" y2="0" stroke-opacity="0.12" style="animation-duration:2.57s;animation-delay:-0.72s"/>
+    <line class="rn30" x1="209" y1="-20" x2="204" y2="0" stroke-opacity="0.09" style="animation-duration:2.30s;animation-delay:-1.60s"/>
+    <line class="rn30" x1="206" y1="-10" x2="201" y2="0" stroke-opacity="0.14" style="animation-duration:1.94s;animation-delay:-0.16s"/>
+    <line class="rn30" x1="299" y1="-16" x2="294" y2="0" stroke-opacity="0.08" style="animation-duration:1.38s;animation-delay:-1.83s"/>
+
+    <!-- accent rail + bottom rule -->
+    <rect class="bar30" x="0" y="0" width="3" height="104" fill="#FF8A3D"/>
+    <rect x="0" y="103" width="340" height="1" fill="url(#rule30)"/>
+
+    <!-- channel tag -->
+    <text class="ch30" x="308" y="26" text-anchor="end">CH.01</text>
+    <circle class="dt30" cx="320" cy="22" r="3.2" fill="#FF8A3D"/>
+
+    <!-- icon well -->
+    <rect x="20" y="34" width="36" height="36" rx="3"
+          fill="#07090C" stroke="#FF8A3D" stroke-opacity=".58"/>
+    <g transform="translate(29,43)"
+       stroke="#22D3EE" stroke-width="1.3" fill="none" stroke-linecap="round"><circle cx="9" cy="9" r="8"/><ellipse cx="9" cy="9" rx="3.6" ry="8"/><path d="M1.4 6h15.2M1.4 12h15.2"/></g>
+
+    <!-- label + target -->
+    <text class="lb30" x="74" y="50">PORTFOLIO</text>
+    <text class="tg30" x="74" y="68">adityapadmarajan.com</text>
+
+    <!-- enter arrow -->
+    <text class="ar30" x="318" y="65" text-anchor="end">&#8250;</text>
+
+    <!-- hud corners -->
+    <g fill="none" stroke="#FF8A3D" stroke-opacity=".45" stroke-width="1.2">
+      <path d="M10 22 L10 12 L20 12"/>
+      <path d="M320 92 L330 92 L330 82"/>
+    </g>
+
+    <!-- overlays -->
+    <rect class="sw30" width="340" height="60" fill="url(#swp30)"/>
+    <rect width="340" height="104" fill="url(#sc30)"/>
+    <rect x="0.5" y="0.5" width="339" height="103" rx="3" fill="none"
+          stroke="#FF8A3D" stroke-opacity=".58"/>
+  </g>
 </svg>
