@@ -178,15 +178,15 @@ def banner():
 
     <!-- name block -->
     <g class="slice">
-      <text class="eyebrow" x="62" y="116">SOFTWARE DEVELOPER</text>
+      <text class="eyebrow" x="{W/2:.0f}" y="116" text-anchor="middle">SOFTWARE DEVELOPER</text>
       <g filter="url(#glow)">
-        <text class="name g1" x="60" y="182">ADITYA<tspan> PADMARAJAN</tspan></text>
-        <text class="name g2" x="60" y="182">ADITYA<tspan> PADMARAJAN</tspan></text>
-        <text class="name" x="60" y="182" fill="{BONE}">ADITYA<tspan fill="{AMBER}"> PADMARAJAN</tspan></text>
+        <text class="name g1" x="{W/2:.0f}" y="182" text-anchor="middle">ADITYA<tspan> PADMARAJAN</tspan></text>
+        <text class="name g2" x="{W/2:.0f}" y="182" text-anchor="middle">ADITYA<tspan> PADMARAJAN</tspan></text>
+        <text class="name" x="{W/2:.0f}" y="182" text-anchor="middle" fill="{BONE}">ADITYA<tspan fill="{AMBER}"> PADMARAJAN</tspan></text>
       </g>
     </g>
 
-    <text class="sub" x="61" y="217">
+    <text class="sub" x="{W/2:.0f}" y="217" text-anchor="middle">
       <tspan fill="{AMBER}">&#8250;</tspan>
       <tspan class="subhi" dx="10">STEMCELL Technologies</tspan>
       <tspan dx="10">&#8212;</tspan>
