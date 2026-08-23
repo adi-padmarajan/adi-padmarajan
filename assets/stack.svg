@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 364" width="1000" height="364" role="img" aria-label="Technical stack">
+  <title>Technical stack</title>
+  <style>
+    .lbl  { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; font-weight:700; letter-spacing:3.4px; fill:#FF8A3D; }
+    .chip { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:12.5px; fill:#E8E3D9; fill-opacity:.88; }
+    .hd   { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; letter-spacing:2.6px; fill:#5A6672; }
+  </style>
+  <rect width="1000" height="364" rx="3" fill="#0B0F14" stroke="#1C2530"/>
+  <rect x="0" y="0" width="3" height="364" fill="#22D3EE" fill-opacity=".55"/>
+  <text class="hd" x="970" y="26" text-anchor="end">stack.manifest</text>
+  <text class="lbl" x="30" y="54">LANGUAGES</text>
+  <line x1="30" y1="62" x2="970" y2="62" stroke="#1C2530" stroke-width="1"/>
+  <g><rect x="30" y="78" width="108" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="44" cy="91" r="3.2" fill="#3178C6"/><text class="chip" x="55" y="95">TypeScript</text></g>
+  <g><rect x="145" y="78" width="108" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="159" cy="91" r="3.2" fill="#F7DF1E"/><text class="chip" x="170" y="95">JavaScript</text></g>
+  <g><rect x="260" y="78" width="78" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="274" cy="91" r="3.2" fill="#3776AB"/><text class="chip" x="285" y="95">Python</text></g>
+  <g><rect x="345" y="78" width="63" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="359" cy="91" r="3.2" fill="#E8E3D9"/><text class="chip" x="370" y="95">Java</text></g>
+  <g><rect x="415" y="78" width="41" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="429" cy="91" r="3.2" fill="#A8B9CC"/><text class="chip" x="440" y="95">C</text></g>
+  <g><rect x="463" y="78" width="56" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="477" cy="91" r="3.2" fill="#4169E1"/><text class="chip" x="488" y="95">SQL</text></g>
+  <text class="lbl" x="30" y="130">FRAMEWORKS</text>
+  <line x1="30" y1="138" x2="970" y2="138" stroke="#1C2530" stroke-width="1"/>
+  <g><rect x="30" y="154" width="71" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="44" cy="167" r="3.2" fill="#61DAFB"/><text class="chip" x="55" y="171">React</text></g>
+  <g><rect x="108" y="154" width="85" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="122" cy="167" r="3.2" fill="#E8E3D9"/><text class="chip" x="133" y="171">Next.js</text></g>
+  <g><rect x="200" y="154" width="85" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="214" cy="167" r="3.2" fill="#5FA04E"/><text class="chip" x="225" y="171">Node.js</text></g>
+  <g><rect x="292" y="154" width="93" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="306" cy="167" r="3.2" fill="#06B6D4"/><text class="chip" x="317" y="171">Tailwind</text></g>
+  <g><rect x="392" y="154" width="85" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="406" cy="167" r="3.2" fill="#009688"/><text class="chip" x="417" y="171">FastAPI</text></g>
+  <g><rect x="484" y="154" width="93" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="498" cy="167" r="3.2" fill="#3FCF8E"/><text class="chip" x="509" y="171">Supabase</text></g>
+  <text class="lbl" x="30" y="206">DATA / ML</text>
+  <line x1="30" y1="214" x2="970" y2="214" stroke="#1C2530" stroke-width="1"/>
+  <g><rect x="30" y="230" width="78" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="44" cy="243" r="3.2" fill="#E8E3D9"/><text class="chip" x="55" y="247">pandas</text></g>
+  <g><rect x="115" y="230" width="71" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="129" cy="243" r="3.2" fill="#4DABCF"/><text class="chip" x="140" y="247">NumPy</text></g>
+  <g><rect x="193" y="230" width="122" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="207" cy="243" r="3.2" fill="#F7931E"/><text class="chip" x="218" y="247">scikit-learn</text></g>
+  <g><rect x="322" y="230" width="85" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="336" cy="243" r="3.2" fill="#F37626"/><text class="chip" x="347" y="247">Jupyter</text></g>
+  <g><rect x="414" y="230" width="78" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="428" cy="243" r="3.2" fill="#8E75B2"/><text class="chip" x="439" y="247">Gemini</text></g>
+  <text class="lbl" x="30" y="282">TOOLING</text>
+  <line x1="30" y1="290" x2="970" y2="290" stroke="#1C2530" stroke-width="1"/>
+  <g><rect x="30" y="306" width="56" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="44" cy="319" r="3.2" fill="#F05032"/><text class="chip" x="55" y="323">Git</text></g>
+  <g><rect x="93" y="306" width="78" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="107" cy="319" r="3.2" fill="#2496ED"/><text class="chip" x="118" y="323">Docker</text></g>
+  <g><rect x="178" y="306" width="78" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="192" cy="319" r="3.2" fill="#E8E3D9"/><text class="chip" x="203" y="323">Vercel</text></g>
+  <g><rect x="263" y="306" width="71" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="277" cy="319" r="3.2" fill="#F24E1E"/><text class="chip" x="288" y="323">Figma</text></g>
+  <g><rect x="341" y="306" width="71" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="355" cy="319" r="3.2" fill="#FCC624"/><text class="chip" x="366" y="323">Linux</text></g>
+  <g><rect x="419" y="306" width="93" height="26" rx="3" fill="#0F151C" stroke="#1C2530"/><circle cx="433" cy="319" r="3.2" fill="#4169E1"/><text class="chip" x="444" y="323">Postgres</text></g>
+</svg>

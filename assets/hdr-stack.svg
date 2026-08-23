@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 60" width="1000" height="60" role="img" aria-label="stack">
+  <title>stack</title>
+  <defs>
+    <linearGradient id="p2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#101720"/>
+      <stop offset="70%"  stop-color="#0B0F14"/>
+      <stop offset="100%" stop-color="#07090C"/>
+    </linearGradient>
+    <linearGradient id="r2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#FF8A3D" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#FF8A3D" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .c2 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:19px; font-weight:700; letter-spacing:1.6px; fill:#E8E3D9; }
+    .n2 { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; letter-spacing:3px; fill:#5A6672; }
+    .k2 { fill:#FF8A3D; }
+    .cur2 { fill:#22D3EE; animation:bl2 1.05s steps(1) infinite; }
+    @keyframes bl2 { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+    @media (prefers-reduced-motion: reduce) { .cur2 { animation:none; } }
+  </style>
+  <rect width="1000" height="60" rx="2" fill="url(#p2)"/>
+  <rect x="0" y="0" width="3" height="60" fill="#FF8A3D"/>
+  <rect x="0" y="59" width="1000" height="1" fill="url(#r2)"/>
+  <text class="c2" x="26" y="37"><tspan class="k2">&#8250;</tspan><tspan dx="12">stack</tspan><tspan class="cur2" dx="6">&#9646;</tspan></text>
+  <text class="n2" x="970" y="36" text-anchor="end">TOOLING MANIFEST</text>
+  <rect x="600" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.18"/><rect x="611" y="29" width="2" height="7" fill="#FF8A3D" fill-opacity="0.30"/><rect x="622" y="32" width="2" height="4" fill="#FF8A3D" fill-opacity="0.42"/><rect x="633" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.54"/><rect x="644" y="29" width="2" height="7" fill="#FF8A3D" fill-opacity="0.18"/><rect x="655" y="32" width="2" height="4" fill="#FF8A3D" fill-opacity="0.30"/><rect x="666" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.42"/><rect x="677" y="29" width="2" height="7" fill="#FF8A3D" fill-opacity="0.54"/><rect x="688" y="32" width="2" height="4" fill="#FF8A3D" fill-opacity="0.18"/><rect x="699" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.30"/><rect x="710" y="29" width="2" height="7" fill="#FF8A3D" fill-opacity="0.42"/><rect x="721" y="32" width="2" height="4" fill="#FF8A3D" fill-opacity="0.54"/><rect x="732" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.18"/><rect x="743" y="29" width="2" height="7" fill="#FF8A3D" fill-opacity="0.30"/><rect x="754" y="32" width="2" height="4" fill="#FF8A3D" fill-opacity="0.42"/><rect x="765" y="26" width="2" height="10" fill="#FF8A3D" fill-opacity="0.54"/>
+</svg>
