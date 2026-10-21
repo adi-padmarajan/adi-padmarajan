@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 84" width="1000" height="84" role="img" aria-label="4,000 metres, ABYSSAL ZONE">
+  <title>4,000 m &#183; ABYSSAL ZONE</title>
+  <defs>
+    <linearGradient id="zbg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#040E22"/>
+      <stop offset="100%" stop-color="#01040B"/>
+    </linearGradient>
+    <linearGradient id="zrule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#38E1FF"  stop-opacity="0"/>
+      <stop offset="30%"  stop-color="#38E1FF"  stop-opacity=".6"/>
+      <stop offset="70%"  stop-color="#8B6CFF" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#8B6CFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="zglow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="zf"><rect width="1000" height="84" rx="4"/></clipPath>
+  </defs>
+  <style>
+    .d  { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:30px; font-weight:700; fill:#38E1FF; }
+    .u  { font-size:14px; font-weight:400; fill:#5873A0; }
+    .zn { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:14px; font-weight:700; letter-spacing:3.2px; fill:#DCEBFF; }
+    .zl { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10px; letter-spacing:2.6px; fill:#5873A0; }
+    .rd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11.5px; letter-spacing:1.6px; fill:#DCEBFF; fill-opacity:.8; }
+    .nt { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; font-style:italic; fill:#5873A0; }
+    .blip { animation:travel 4.8s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes travel { 0% {transform:translateX(0);opacity:0} 10%,90% {opacity:1} 100% {transform:translateX(340px);opacity:0} }
+    .chev { animation:chev 2s ease-in-out infinite; }
+    @keyframes chev { 0%,100% {transform:translateY(-2px);opacity:.35} 50% {transform:translateY(3px);opacity:1} }
+    .snow { fill:#DCEBFF; animation:sink linear infinite; }
+    @keyframes sink { from {transform:translate(0,0)} to {transform:translate(-14px,94px)} }
+    @media (prefers-reduced-motion: reduce) { .blip,.chev,.snow { animation:none; } }
+  </style>
+  <g clip-path="url(#zf)">
+    <rect width="1000" height="84" fill="url(#zbg)"/>
+    <circle class="snow" cx="845" cy="-4" r="0.5" fill-opacity="0.25" style="animation-duration:17.1s;animation-delay:-0.4s"/>
+    <circle class="snow" cx="881" cy="-4" r="1.2" fill-opacity="0.17" style="animation-duration:19.6s;animation-delay:-3.5s"/>
+    <circle class="snow" cx="701" cy="-4" r="1.2" fill-opacity="0.17" style="animation-duration:13.6s;animation-delay:-11.6s"/>
+    <circle class="snow" cx="536" cy="-4" r="0.9" fill-opacity="0.15" style="animation-duration:10.9s;animation-delay:-0.2s"/>
+    <circle class="snow" cx="968" cy="-4" r="0.6" fill-opacity="0.20" style="animation-duration:17.0s;animation-delay:-11.4s"/>
+    <circle class="snow" cx="349" cy="-4" r="0.7" fill-opacity="0.21" style="animation-duration:21.2s;animation-delay:-10.4s"/>
+    <circle class="snow" cx="365" cy="-4" r="1.2" fill-opacity="0.15" style="animation-duration:14.8s;animation-delay:-5.0s"/>
+    <circle class="snow" cx="538" cy="-4" r="0.9" fill-opacity="0.22" style="animation-duration:12.2s;animation-delay:-8.7s"/>
+    <circle class="snow" cx="940" cy="-4" r="0.7" fill-opacity="0.15" style="animation-duration:16.6s;animation-delay:-8.7s"/>
+    <circle class="snow" cx="889" cy="-4" r="1.2" fill-opacity="0.24" style="animation-duration:21.3s;animation-delay:-14.5s"/>
+    <circle class="snow" cx="966" cy="-4" r="0.4" fill-opacity="0.16" style="animation-duration:19.2s;animation-delay:-13.7s"/>
+    <circle class="snow" cx="125" cy="-4" r="1.0" fill-opacity="0.32" style="animation-duration:20.2s;animation-delay:-6.5s"/>
+    <circle class="snow" cx="736" cy="-4" r="0.7" fill-opacity="0.22" style="animation-duration:21.9s;animation-delay:-17.2s"/>
+    <circle class="snow" cx="939" cy="-4" r="1.2" fill-opacity="0.24" style="animation-duration:13.8s;animation-delay:-5.1s"/>
+    <circle class="snow" cx="507" cy="-4" r="0.6" fill-opacity="0.27" style="animation-duration:14.0s;animation-delay:-9.0s"/>
+    <circle class="snow" cx="674" cy="-4" r="0.4" fill-opacity="0.32" style="animation-duration:13.7s;animation-delay:-9.0s"/>
+    <rect width="1000" height="1" fill="url(#zrule)"/>
+    <rect y="83" width="1000" height="1" fill="url(#zrule)" opacity=".5"/>
+
+    <g class="chev" fill="none" stroke="#38E1FF" stroke-width="1.4">
+      <path d="M24 34 l6 6 l6 -6"/><path d="M24 42 l6 6 l6 -6" stroke-opacity=".5"/>
+    </g>
+    <text class="d" x="50" y="53">4,000<tspan class="u" dx="6">m</tspan></text>
+
+    <text class="zn" x="186" y="38">ABYSSAL ZONE</text>
+    <text class="zl" x="186" y="57">ABYSSOPELAGIC</text>
+
+    <line x1="400" y1="44" x2="740" y2="44" stroke="#132A4F" stroke-width="1"/>
+    <g stroke="#5873A0" stroke-opacity=".6"><line x1="400" y1="39" x2="400" y2="49"/><line x1="417" y1="42" x2="417" y2="46"/><line x1="434" y1="42" x2="434" y2="46"/><line x1="451" y1="42" x2="451" y2="46"/><line x1="468" y1="39" x2="468" y2="49"/><line x1="485" y1="42" x2="485" y2="46"/><line x1="502" y1="42" x2="502" y2="46"/><line x1="519" y1="42" x2="519" y2="46"/><line x1="536" y1="39" x2="536" y2="49"/><line x1="553" y1="42" x2="553" y2="46"/><line x1="570" y1="42" x2="570" y2="46"/><line x1="587" y1="42" x2="587" y2="46"/><line x1="604" y1="39" x2="604" y2="49"/><line x1="621" y1="42" x2="621" y2="46"/><line x1="638" y1="42" x2="638" y2="46"/><line x1="655" y1="42" x2="655" y2="46"/><line x1="672" y1="39" x2="672" y2="49"/><line x1="689" y1="42" x2="689" y2="46"/><line x1="706" y1="42" x2="706" y2="46"/><line x1="723" y1="42" x2="723" y2="46"/><line x1="740" y1="39" x2="740" y2="49"/></g>
+    <g class="blip"><circle cx="400" cy="44" r="3" fill="#38E1FF" filter="url(#zglow)"/></g>
+
+    <text class="rd" x="972" y="38" text-anchor="end">&#8776; 401 ATM &#183; 2&#176;C</text>
+    <text class="nt" x="972" y="57" text-anchor="end">send a signal, someone's listening</text>
+  </g>
+</svg>

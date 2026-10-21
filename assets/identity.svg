@@ -2,105 +2,114 @@
   <title>Aditya Padmarajan — Software Developer at STEMCELL Technologies; B.Sc. Computer Science, University of Victoria; based in Vancouver, British Columbia</title>
   <defs>
     <linearGradient id="ipnl" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#0D131A"/>
-      <stop offset="62%"  stop-color="#0B0F14"/>
-      <stop offset="100%" stop-color="#07090C"/>
+      <stop offset="0%"   stop-color="#061A3A"/>
+      <stop offset="62%"  stop-color="#061229"/>
+      <stop offset="100%" stop-color="#01040B"/>
     </linearGradient>
     <linearGradient id="ibar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="#131B24"/>
-      <stop offset="100%" stop-color="#0B0F14"/>
+      <stop offset="0%"   stop-color="#0A2248"/>
+      <stop offset="100%" stop-color="#061229"/>
     </linearGradient>
-    <radialGradient id="iris" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#C2410C" stop-opacity=".55"/>
-      <stop offset="58%"  stop-color="#FF8A3D" stop-opacity=".22"/>
-      <stop offset="100%" stop-color="#07090C"  stop-opacity=".9"/>
+    <linearGradient id="ibar2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#38E1FF"/>
+    </linearGradient>
+    <radialGradient id="iscope" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#3B82F6" stop-opacity=".16"/>
+      <stop offset="100%" stop-color="#01040B" stop-opacity=".9"/>
     </radialGradient>
-    <linearGradient id="isweep" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#22D3EE" stop-opacity="0"/>
-      <stop offset="50%"  stop-color="#22D3EE" stop-opacity=".10"/>
-      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    <linearGradient id="iedge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#38E1FF"  stop-opacity=".40"/>
+      <stop offset="100%" stop-color="#8B6CFF" stop-opacity=".25"/>
     </linearGradient>
-    <pattern id="iscan" width="4" height="4" patternUnits="userSpaceOnUse">
-      <rect width="4" height="1.4" fill="#000" fill-opacity="0.26"/>
-    </pattern>
-    <clipPath id="ipupil"><circle cx="716" cy="155.0" r="33"/></clipPath>
-    <clipPath id="iframe"><rect x="0" y="0" width="1000" height="290" rx="3"/></clipPath>
-    <filter id="iglow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="4" result="b"/>
+    <clipPath id="iframe"><rect width="1000" height="290" rx="6"/></clipPath>
+    <filter id="iglow" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <style>
     .cd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:14px; letter-spacing:.2px; }
-    .gut{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; fill:#5A6672; fill-opacity:.55; }
-    .kw { fill:#FF5FA2; }
-    .vr { fill:#E8E3D9; }
-    .ky { fill:#22D3EE; }
-    .st { fill:#FFB27A; }
-    .op { fill:#5A6672; }
-    .cm { fill:#5A6672; fill-opacity:.68; font-style:italic; }
-    .tab{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:12px; font-weight:700; letter-spacing:2.2px; fill:#E8E3D9; fill-opacity:.9; }
-    .meta{font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.4px; fill:#5A6672; }
-    .rd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.2px; fill:#5A6672; }
-    .vk { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10px; letter-spacing:3px; fill:#FF8A3D; fill-opacity:.85; }
-    .car{ fill:#22D3EE; fill-opacity:.75; animation:icar 1.05s steps(1) infinite; }
+    .gut{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11px; fill:#5873A0; fill-opacity:.55; }
+    .kw { fill:#B49BFF; }
+    .vr { fill:#DCEBFF; }
+    .ky { fill:#38E1FF; }
+    .st { fill:#9CC8FF; }
+    .op { fill:#5873A0; }
+    .cm { fill:#5873A0; fill-opacity:.75; font-style:italic; }
+    .tab{ font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:12px; font-weight:700; letter-spacing:2.2px; fill:#DCEBFF; fill-opacity:.9; }
+    .meta{font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.4px; fill:#5873A0; }
+    .rd { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:2.2px; fill:#5873A0; }
+    .vk { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10px; letter-spacing:3px; fill:#38E1FF; fill-opacity:.85; }
+    .car{ fill:#38E1FF; fill-opacity:.75; animation:icar 1.05s steps(1) infinite; }
     @keyframes icar { 0%,50% {opacity:1} 51%,100% {opacity:0} }
-    .rn { stroke:#22D3EE; stroke-width:1; animation-name:ifall; animation-timing-function:linear; animation-iteration-count:infinite; }
-    @keyframes ifall { from {transform:translateY(0)} to {transform:translateY(330px)} }
-    .swp{ animation:iswp 7s ease-in-out infinite; }
-    @keyframes iswp { 0%,100% {transform:translateY(-70px)} 50% {transform:translateY(290px)} }
-    .dash{ transform-origin:716px 155.0px; animation:ispin 14s linear infinite; }
-    @keyframes ispin { to {transform:rotate(360deg)} }
-    .spk { transform-origin:716px 155.0px; animation:ispin2 26s linear infinite; }
-    @keyframes ispin2 { to {transform:rotate(-360deg)} }
-    .iscan{ animation:iris-scan 3.4s ease-in-out infinite; }
-    @keyframes iris-scan { 0%,100% {transform:translateY(-34px)} 50% {transform:translateY(34px)} }
+    .sweep { transform-origin:735px 153.0px; animation:spin 4s linear infinite; }
+    @keyframes spin { to {transform:rotate(360deg)} }
+    .blip { animation:blip 4s linear infinite; }
+    @keyframes blip { 0%,11.1% {opacity:.2} 11.9% {opacity:1} 70%,100% {opacity:.2} }
+    .echo { fill:none; stroke:#38E1FF; stroke-width:1; vector-effect:non-scaling-stroke;
+             transform-origin:761px 122.0px; animation:echo 4s ease-out infinite; }
+    @keyframes echo {
+      0%,11.1% {transform:scale(.3);opacity:0}
+      11.9% {transform:scale(.3);opacity:.9}
+      41.1%,100% {transform:scale(2.4);opacity:0}
+    }
     .dot { animation:ipulse 2.2s ease-in-out infinite; }
     @keyframes ipulse { 0%,100% {opacity:.25} 50% {opacity:1} }
+    .snow { fill:#DCEBFF; animation:sink linear infinite; }
+    @keyframes sink { from {transform:translate(0,0)} to {transform:translate(-14px,300px)} }
     @media (prefers-reduced-motion: reduce) {
-      .car,.rn,.swp,.dash,.spk,.iscan,.dot { animation:none; }
-      .rn { opacity:.18 }
+      .car,.sweep,.blip,.echo,.dot,.snow { animation:none; }
+      .echo { opacity:0 }
     }
   </style>
 
   <g clip-path="url(#iframe)">
     <rect width="1000" height="290" fill="url(#ipnl)"/>
-    <line class="rn" x1="542" y1="-28" x2="536" y2="0" stroke-opacity="0.08" style="animation-duration:1.12s;animation-delay:-2.08s"/>
-    <line class="rn" x1="851" y1="-24" x2="845" y2="0" stroke-opacity="0.08" style="animation-duration:2.30s;animation-delay:-2.35s"/>
-    <line class="rn" x1="252" y1="-31" x2="246" y2="0" stroke-opacity="0.13" style="animation-duration:1.93s;animation-delay:-0.57s"/>
-    <line class="rn" x1="219" y1="-20" x2="213" y2="0" stroke-opacity="0.09" style="animation-duration:2.19s;animation-delay:-1.29s"/>
-    <line class="rn" x1="903" y1="-23" x2="897" y2="0" stroke-opacity="0.14" style="animation-duration:1.45s;animation-delay:-0.41s"/>
-    <line class="rn" x1="368" y1="-16" x2="362" y2="0" stroke-opacity="0.12" style="animation-duration:1.54s;animation-delay:-1.94s"/>
-    <line class="rn" x1="637" y1="-21" x2="631" y2="0" stroke-opacity="0.18" style="animation-duration:1.70s;animation-delay:-2.17s"/>
-    <line class="rn" x1="759" y1="-22" x2="753" y2="0" stroke-opacity="0.13" style="animation-duration:1.62s;animation-delay:-2.21s"/>
-    <line class="rn" x1="482" y1="-33" x2="476" y2="0" stroke-opacity="0.15" style="animation-duration:1.69s;animation-delay:-1.57s"/>
-    <line class="rn" x1="909" y1="-30" x2="903" y2="0" stroke-opacity="0.13" style="animation-duration:2.04s;animation-delay:-1.20s"/>
-    <line class="rn" x1="533" y1="-26" x2="527" y2="0" stroke-opacity="0.15" style="animation-duration:1.59s;animation-delay:-0.60s"/>
-    <line class="rn" x1="987" y1="-31" x2="981" y2="0" stroke-opacity="0.14" style="animation-duration:1.94s;animation-delay:-1.01s"/>
-    <line class="rn" x1="191" y1="-31" x2="185" y2="0" stroke-opacity="0.17" style="animation-duration:1.52s;animation-delay:-2.21s"/>
-    <line class="rn" x1="798" y1="-31" x2="792" y2="0" stroke-opacity="0.18" style="animation-duration:1.14s;animation-delay:-2.02s"/>
-    <line class="rn" x1="1000" y1="-15" x2="994" y2="0" stroke-opacity="0.12" style="animation-duration:1.90s;animation-delay:-2.00s"/>
-    <line class="rn" x1="368" y1="-22" x2="362" y2="0" stroke-opacity="0.15" style="animation-duration:1.22s;animation-delay:-0.62s"/>
-    <line class="rn" x1="837" y1="-21" x2="831" y2="0" stroke-opacity="0.08" style="animation-duration:2.01s;animation-delay:-0.76s"/>
-    <line class="rn" x1="743" y1="-16" x2="737" y2="0" stroke-opacity="0.07" style="animation-duration:1.90s;animation-delay:-2.39s"/>
-    <line class="rn" x1="254" y1="-14" x2="248" y2="0" stroke-opacity="0.07" style="animation-duration:2.05s;animation-delay:-2.36s"/>
-    <line class="rn" x1="347" y1="-21" x2="341" y2="0" stroke-opacity="0.17" style="animation-duration:2.04s;animation-delay:-0.60s"/>
-    <line class="rn" x1="857" y1="-15" x2="851" y2="0" stroke-opacity="0.09" style="animation-duration:1.12s;animation-delay:-0.07s"/>
-    <line class="rn" x1="334" y1="-34" x2="328" y2="0" stroke-opacity="0.07" style="animation-duration:1.69s;animation-delay:-0.10s"/>
-    <line class="rn" x1="715" y1="-33" x2="709" y2="0" stroke-opacity="0.08" style="animation-duration:2.23s;animation-delay:-0.26s"/>
-    <line class="rn" x1="945" y1="-19" x2="939" y2="0" stroke-opacity="0.12" style="animation-duration:1.96s;animation-delay:-2.21s"/>
-    <line class="rn" x1="402" y1="-26" x2="396" y2="0" stroke-opacity="0.16" style="animation-duration:1.82s;animation-delay:-0.08s"/>
-    <line class="rn" x1="550" y1="-26" x2="544" y2="0" stroke-opacity="0.17" style="animation-duration:1.55s;animation-delay:-1.92s"/>
+    <circle class="snow" cx="804" cy="-4" r="1.1" fill-opacity="0.17" style="animation-duration:16.3s;animation-delay:-15.1s"/>
+    <circle class="snow" cx="149" cy="-4" r="1.0" fill-opacity="0.23" style="animation-duration:11.3s;animation-delay:-8.9s"/>
+    <circle class="snow" cx="920" cy="-4" r="0.5" fill-opacity="0.26" style="animation-duration:21.0s;animation-delay:-1.9s"/>
+    <circle class="snow" cx="347" cy="-4" r="1.0" fill-opacity="0.22" style="animation-duration:11.2s;animation-delay:-0.8s"/>
+    <circle class="snow" cx="62" cy="-4" r="0.5" fill-opacity="0.21" style="animation-duration:12.2s;animation-delay:-11.6s"/>
+    <circle class="snow" cx="733" cy="-4" r="0.6" fill-opacity="0.30" style="animation-duration:19.5s;animation-delay:-6.8s"/>
+    <circle class="snow" cx="704" cy="-4" r="1.4" fill-opacity="0.25" style="animation-duration:10.5s;animation-delay:-2.9s"/>
+    <circle class="snow" cx="577" cy="-4" r="1.1" fill-opacity="0.17" style="animation-duration:10.2s;animation-delay:-5.9s"/>
+    <circle class="snow" cx="337" cy="-4" r="1.3" fill-opacity="0.13" style="animation-duration:11.5s;animation-delay:-10.8s"/>
+    <circle class="snow" cx="249" cy="-4" r="0.5" fill-opacity="0.21" style="animation-duration:15.1s;animation-delay:-6.1s"/>
+    <circle class="snow" cx="445" cy="-4" r="1.0" fill-opacity="0.19" style="animation-duration:14.9s;animation-delay:-6.1s"/>
+    <circle class="snow" cx="333" cy="-4" r="1.0" fill-opacity="0.20" style="animation-duration:13.1s;animation-delay:-9.6s"/>
+    <circle class="snow" cx="836" cy="-4" r="1.0" fill-opacity="0.15" style="animation-duration:14.5s;animation-delay:-1.0s"/>
+    <circle class="snow" cx="870" cy="-4" r="1.4" fill-opacity="0.30" style="animation-duration:9.7s;animation-delay:-7.3s"/>
+    <circle class="snow" cx="583" cy="-4" r="0.5" fill-opacity="0.19" style="animation-duration:14.4s;animation-delay:-0.5s"/>
+    <circle class="snow" cx="181" cy="-4" r="0.8" fill-opacity="0.28" style="animation-duration:9.9s;animation-delay:-2.2s"/>
+    <circle class="snow" cx="583" cy="-4" r="0.9" fill-opacity="0.21" style="animation-duration:14.5s;animation-delay:-7.1s"/>
+    <circle class="snow" cx="810" cy="-4" r="1.2" fill-opacity="0.32" style="animation-duration:19.9s;animation-delay:-3.9s"/>
+    <circle class="snow" cx="899" cy="-4" r="0.4" fill-opacity="0.20" style="animation-duration:20.2s;animation-delay:-18.8s"/>
+    <circle class="snow" cx="438" cy="-4" r="0.5" fill-opacity="0.19" style="animation-duration:14.3s;animation-delay:-1.8s"/>
+    <circle class="snow" cx="110" cy="-4" r="1.2" fill-opacity="0.20" style="animation-duration:16.7s;animation-delay:-16.1s"/>
+    <circle class="snow" cx="437" cy="-4" r="1.1" fill-opacity="0.22" style="animation-duration:21.2s;animation-delay:-12.0s"/>
+    <circle class="snow" cx="217" cy="-4" r="1.2" fill-opacity="0.27" style="animation-duration:17.3s;animation-delay:-12.3s"/>
+    <circle class="snow" cx="544" cy="-4" r="1.0" fill-opacity="0.21" style="animation-duration:17.9s;animation-delay:-14.0s"/>
+    <circle class="snow" cx="183" cy="-4" r="1.0" fill-opacity="0.19" style="animation-duration:11.4s;animation-delay:-7.6s"/>
+    <circle class="snow" cx="502" cy="-4" r="0.4" fill-opacity="0.23" style="animation-duration:15.2s;animation-delay:-8.2s"/>
+    <circle class="snow" cx="460" cy="-4" r="0.7" fill-opacity="0.21" style="animation-duration:15.6s;animation-delay:-6.5s"/>
+    <circle class="snow" cx="31" cy="-4" r="0.8" fill-opacity="0.21" style="animation-duration:19.7s;animation-delay:-18.8s"/>
+    <circle class="snow" cx="482" cy="-4" r="1.2" fill-opacity="0.19" style="animation-duration:12.3s;animation-delay:-8.1s"/>
+    <circle class="snow" cx="550" cy="-4" r="1.3" fill-opacity="0.17" style="animation-duration:13.0s;animation-delay:-10.3s"/>
+    <circle class="snow" cx="19" cy="-4" r="0.9" fill-opacity="0.25" style="animation-duration:10.6s;animation-delay:-7.2s"/>
+    <circle class="snow" cx="461" cy="-4" r="0.9" fill-opacity="0.16" style="animation-duration:16.0s;animation-delay:-12.9s"/>
+    <circle class="snow" cx="164" cy="-4" r="1.2" fill-opacity="0.20" style="animation-duration:9.0s;animation-delay:-1.2s"/>
+    <circle class="snow" cx="774" cy="-4" r="1.2" fill-opacity="0.22" style="animation-duration:14.4s;animation-delay:-8.9s"/>
 
     <!-- title bar -->
     <rect width="1000" height="36" fill="url(#ibar)"/>
-    <rect x="0" y="35" width="1000" height="1" fill="#1C2530"/>
-    <circle cx="26" cy="18" r="3.6" fill="#FF8A3D" class="dot"/>
+    <rect x="0" y="35" width="1000" height="1" fill="#132A4F"/>
+    <circle cx="26" cy="18" r="3.6" fill="#38E1FF" class="dot"/>
     <text class="tab" x="42" y="22">IDENTITY.TS</text>
-    <text class="meta" x="970" y="22" text-anchor="end">FILE 2049&#183;ADI&#183;01 &#183; CLEARANCE PUBLIC</text>
+    <text class="meta" x="970" y="22" text-anchor="end">DIVE LOG 001 &#183; CONTACT ACQUIRED</text>
 
     <!-- code -->
-    <rect x="0" y="36" width="3" height="254" fill="#FF8A3D"/>
+    <rect x="0" y="36" width="3" height="254" fill="#38E1FF" fill-opacity=".7"/>
     <text class="gut" x="30" y="84">01</text>
   <text class="cd" xml:space="preserve" y="84"><tspan class="kw" x="64">const</tspan><tspan class="vr"> aditya</tspan><tspan class="op"> = {</tspan></text>
   <text class="gut" x="30" y="109">02</text>
@@ -114,55 +123,42 @@
   <text class="gut" x="30" y="209">06</text>
   <text class="cd" xml:space="preserve" y="209"><tspan x="64"> </tspan></text>
   <text class="gut" x="30" y="234">07</text>
-  <text class="cd" xml:space="preserve" y="234"><tspan class="cm" x="64">&#47;&#47; baseline &#8212; cells interlinked within cells interlinked</tspan></text>
+  <text class="cd" xml:space="preserve" y="234"><tspan class="cm" x="64">&#47;&#47; below 1000 m the only light is the light you make</tspan></text>
   <rect class="car" x="64" y="198" width="8.4" height="14"/>
 
     <!-- divider -->
-    <line x1="630" y1="58" x2="630" y2="268" stroke="#1C2530" stroke-width="1"/>
+    <line x1="630" y1="58" x2="630" y2="268" stroke="#132A4F" stroke-width="1"/>
 
-    <!-- v-k iris -->
-    <g class="dash" fill="none" stroke="#FF8A3D" stroke-opacity=".45" stroke-width="1.1">
-      <circle cx="716" cy="155.0" r="52" stroke-dasharray="3 9"/>
+    <!-- sonar scope -->
+    <circle cx="735" cy="153.0" r="60" fill="url(#iscope)"/>
+    <circle cx="735" cy="153.0" r="60" fill="none" stroke="#38E1FF" stroke-opacity="0.45"/><circle cx="735" cy="153.0" r="40.0" fill="none" stroke="#38E1FF" stroke-opacity="0.2"/><circle cx="735" cy="153.0" r="20.0" fill="none" stroke="#38E1FF" stroke-opacity="0.2"/>
+    <path d="M675 153.0 h120 M735 93.0 v120" stroke="#38E1FF" stroke-opacity=".15"/>
+    <g class="sweep">
+      <g fill="#38E1FF"><path d="M735 153.0 L729.8 93.2 A60 60 0 0 1 735.0 93.0Z" fill-opacity="0.38"/><path d="M735 153.0 L724.6 93.9 A60 60 0 0 1 729.8 93.2Z" fill-opacity="0.34"/><path d="M735 153.0 L719.5 95.0 A60 60 0 0 1 724.6 93.9Z" fill-opacity="0.30"/><path d="M735 153.0 L714.5 96.6 A60 60 0 0 1 719.5 95.0Z" fill-opacity="0.27"/><path d="M735 153.0 L709.6 98.6 A60 60 0 0 1 714.5 96.6Z" fill-opacity="0.23"/><path d="M735 153.0 L705.0 101.0 A60 60 0 0 1 709.6 98.6Z" fill-opacity="0.19"/><path d="M735 153.0 L700.6 103.9 A60 60 0 0 1 705.0 101.0Z" fill-opacity="0.15"/><path d="M735 153.0 L696.4 107.0 A60 60 0 0 1 700.6 103.9Z" fill-opacity="0.11"/><path d="M735 153.0 L692.6 110.6 A60 60 0 0 1 696.4 107.0Z" fill-opacity="0.08"/><path d="M735 153.0 L689.0 114.4 A60 60 0 0 1 692.6 110.6Z" fill-opacity="0.04"/></g>
+      <line x1="735" y1="153.0" x2="735.0" y2="93.0" stroke="#38E1FF" stroke-width="1.4"/>
     </g>
-    <circle cx="716" cy="155.0" r="44" fill="none" stroke="#FF8A3D" stroke-opacity=".22" stroke-width="1"/>
-    <circle cx="716" cy="155.0" r="33" fill="url(#iris)"/>
-    <g class="spk" stroke="#FF8A3D" stroke-opacity=".30" stroke-width="1" transform-origin="716 155.0">
-      <g transform="translate(716,155.0)"><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(0.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(22.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(45.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(67.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(90.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(112.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(135.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(157.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(180.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(202.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(225.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(247.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(270.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(292.5)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(315.0)"/><line x1="0" y1="-15" x2="0" y2="-31" transform="rotate(337.5)"/></g>
-    </g>
-    <g clip-path="url(#ipupil)">
-      <rect class="iscan" x="683" y="153.5" width="66" height="3" fill="#22D3EE" fill-opacity=".55"/>
-    </g>
-    <circle cx="716" cy="155.0" r="12.5" fill="#07090C" stroke="#22D3EE" stroke-opacity=".5"/>
-    <circle cx="712" cy="151.0" r="2.6" fill="#22D3EE" fill-opacity=".9" filter="url(#iglow)"/>
-    <text class="vk" x="716" y="225.0" text-anchor="middle">V&#8722;K BASELINE</text>
+    <circle class="echo" cx="761" cy="122.0" r="8"/>
+    <circle class="blip" cx="761" cy="122.0" r="3.2" fill="#38E1FF" filter="url(#iglow)"/>
+    <circle cx="735" cy="153.0" r="2" fill="#DCEBFF"/>
+    <text class="vk" x="735" y="235" text-anchor="middle">CONTACT 01 &#183; 040&#176;</text>
 
     <!-- readouts -->
-    <text class="rd" x="800" y="129.0">A-SYS</text>
-  <rect x="884" y="121.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
-  <rect x="885" y="122.0" width="78" height="4" fill="#FF8A3D" fill-opacity="0.85"/>
-  <text class="rd" x="800" y="155.0">DEV.LOOP</text>
-  <rect x="884" y="147.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
-  <rect x="885" y="148.0" width="66" height="4" fill="#FF8A3D" fill-opacity="0.67"/>
-  <text class="rd" x="800" y="181.0">SIGNAL</text>
-  <rect x="884" y="173.0" width="86" height="6" rx="1" fill="#07090C" stroke="#1C2530"/>
-  <rect x="885" y="174.0" width="51" height="4" fill="#FF8A3D" fill-opacity="0.49"/>
-    <text class="meta" x="800" y="225.0">STATUS &#183; INTERLINKED</text>
+    <text class="vk" x="828" y="107" fill="#8B6CFF">TELEMETRY</text>
+    <text class="rd" x="828" y="131">SIGNAL</text>
+  <rect x="904" y="123" width="66" height="6" rx="3" fill="#01040B" stroke="#132A4F"/>
+  <rect x="905" y="124" width="60" height="4" rx="2" fill="url(#ibar2)"/>
+  <text class="rd" x="828" y="157">LUMEN</text>
+  <rect x="904" y="149" width="66" height="6" rx="3" fill="#01040B" stroke="#132A4F"/>
+  <rect x="905" y="150" width="44" height="4" rx="2" fill="url(#ibar2)"/>
+  <text class="rd" x="828" y="183">PRESSURE</text>
+  <rect x="904" y="175" width="66" height="6" rx="3" fill="#01040B" stroke="#132A4F"/>
+  <rect x="905" y="176" width="13" height="4" rx="2" fill="url(#ibar2)"/>
+    <text class="meta" x="828" y="235">IDENTIFIED</text>
 
     <!-- footer -->
-    <text class="meta" x="64" y="274">49.28&#176;N 123.12&#176;W &#183; VANCOUVER SECTOR</text>
-    <text class="meta" x="970" y="274" text-anchor="end">&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9646;&#9647;&#9647; STABLE</text>
+    <text class="meta" x="64" y="274">49.28&#176;N 123.12&#176;W &#183; SALISH SEA</text>
+    <text class="meta" x="970" y="274" text-anchor="end">DEPTH 0200 m &#183; HOLDING</text>
 
-    <!-- hud corners -->
-    <g fill="none" stroke="#FF8A3D" stroke-opacity=".55" stroke-width="1.2">
-      <path d="M14 52 L14 42 L24 42"/>
-      <path d="M976 42 L986 42 L986 52"/>
-      <path d="M14 274 L14 284 L24 284"/>
-      <path d="M976 284 L986 284 L986 274"/>
-    </g>
-
-    <!-- overlays -->
-    <rect class="swp" width="1000" height="70" fill="url(#isweep)"/>
-    <rect width="1000" height="290" fill="url(#iscan)"/>
-    <rect x="0.5" y="0.5" width="999" height="289" rx="3" fill="none" stroke="#FF8A3D" stroke-opacity=".30"/>
+    <rect x=".5" y=".5" width="999" height="289" rx="6" fill="none" stroke="url(#iedge)"/>
   </g>
 </svg>
