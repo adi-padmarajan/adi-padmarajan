@@ -125,7 +125,7 @@ def jelly(x, y, s, a, b, idx, delay):
 # ── 1. HERO BANNER: THE SURFACE ──────────────────────────────────────────────
 def banner():
     W, H = 1200, 400
-    cx, cy = W / 2, 182          # name centre, also the sonar origin
+    cx, cy = W / 2, 182          # name centre
 
     # god rays slanting down from the surface
     rays = []
@@ -153,10 +153,6 @@ def banner():
         jelly(930,  300, 0.42, BIO,  TIDE, 2, 5.4),
     )
     jd, jb = "\n    ".join(jd), "\n    ".join(jb)
-
-    rings = "\n    ".join(
-        f'<circle class="ping" cx="{cx:.0f}" cy="{cy}" r="420" style="animation-delay:-{d}s"/>' for d in (0, 2, 4)
-    )
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Aditya Padmarajan — Software Developer">
   <title>Aditya Padmarajan — Software Developer</title>
@@ -209,10 +205,6 @@ def banner():
     .ruler {{ stroke:{BIO}; stroke-opacity:.35; stroke-width:1; animation:descend 2.6s linear infinite; }}
     @keyframes descend {{ from {{transform:translateY(0)}} to {{transform:translateY(-60px)}} }}
 
-    .ping {{ fill:none; stroke:{BIO}; stroke-width:1.2; vector-effect:non-scaling-stroke;
-             transform-origin:{cx:.0f}px {cy}px; animation:ping 6s cubic-bezier(.2,.6,.4,1) infinite; }}
-    @keyframes ping {{ 0% {{transform:scale(.05);opacity:.75}} 100% {{transform:scale(1);opacity:0}} }}
-
     .drift {{ animation:drift 9s ease-in-out infinite; }}
     @keyframes drift {{ 0%,100% {{transform:translate(0,0)}} 50% {{transform:translate(8px,-16px)}} }}
 
@@ -237,8 +229,8 @@ def banner():
     @keyframes sinkcue {{ 0%,100% {{transform:translateY(0);opacity:.5}} 50% {{transform:translateY(5px);opacity:1}} }}
 
     @media (prefers-reduced-motion: reduce) {{
-      .ray,.w1,.w2,.ruler,.ping,.drift,.snow,.bub,.halo,.cursor,.pulse,.sink {{ animation:none; }}
-      .ping,.bub {{ opacity:0; }}
+      .ray,.w1,.w2,.ruler,.drift,.snow,.bub,.halo,.cursor,.pulse,.sink {{ animation:none; }}
+      .bub {{ opacity:0; }}
     }}
   </style>
 
@@ -251,9 +243,6 @@ def banner():
     </g>
     <path class="w1" d="{wave(16, 7)}"/>
     <path class="w2" d="{wave(10, 5)}"/>
-
-    <!-- sonar pings radiating from the name -->
-    {rings}
 
     <!-- life -->
     {jb}

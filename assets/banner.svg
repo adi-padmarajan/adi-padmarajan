@@ -63,10 +63,6 @@
     .ruler { stroke:#38E1FF; stroke-opacity:.35; stroke-width:1; animation:descend 2.6s linear infinite; }
     @keyframes descend { from {transform:translateY(0)} to {transform:translateY(-60px)} }
 
-    .ping { fill:none; stroke:#38E1FF; stroke-width:1.2; vector-effect:non-scaling-stroke;
-             transform-origin:600px 182px; animation:ping 6s cubic-bezier(.2,.6,.4,1) infinite; }
-    @keyframes ping { 0% {transform:scale(.05);opacity:.75} 100% {transform:scale(1);opacity:0} }
-
     .drift { animation:drift 9s ease-in-out infinite; }
     @keyframes drift { 0%,100% {transform:translate(0,0)} 50% {transform:translate(8px,-16px)} }
 
@@ -99,8 +95,8 @@
     @keyframes sinkcue { 0%,100% {transform:translateY(0);opacity:.5} 50% {transform:translateY(5px);opacity:1} }
 
     @media (prefers-reduced-motion: reduce) {
-      .ray,.w1,.w2,.ruler,.ping,.drift,.snow,.bub,.halo,.cursor,.pulse,.sink { animation:none; }
-      .ping,.bub { opacity:0; }
+      .ray,.w1,.w2,.ruler,.drift,.snow,.bub,.halo,.cursor,.pulse,.sink { animation:none; }
+      .bub { opacity:0; }
     }
   </style>
 
@@ -119,11 +115,6 @@
     </g>
     <path class="w1" d="M-200 16 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 q25 -7 50 0 t50 0 L1500 -20 L-200 -20Z"/>
     <path class="w2" d="M-200 10 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 q25 -5 50 0 t50 0 L1500 -20 L-200 -20Z"/>
-
-    <!-- sonar pings radiating from the name -->
-    <circle class="ping" cx="600" cy="182" r="420" style="animation-delay:-0s"/>
-    <circle class="ping" cx="600" cy="182" r="420" style="animation-delay:-2s"/>
-    <circle class="ping" cx="600" cy="182" r="420" style="animation-delay:-4s"/>
 
     <!-- life -->
     <g transform="translate(1046,112) scale(1.15)">
