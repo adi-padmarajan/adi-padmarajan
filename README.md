@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.svg" width="100%" alt="Aditya Padmarajan — dawn over glacier peaks and a mountain lake" />
+<img src="assets/banner.svg" width="100%" alt="A backpacker watching snow peaks over a mountain lake at golden hour" />
 
 <img src="assets/chapter-forest.svg" width="100%" alt="Waypoint 01 · The Old-Growth — who I am" />
 

@@ -27,7 +27,6 @@
     <pattern id="rrmp" width="1000" height="4" patternUnits="userSpaceOnUse">
       <rect width="1000" height="2.8" fill="#fff"/>
       <rect y="2.8" width="1000" height="1.2000000000000002" fill="#8c8c8c"/>
-      <animateTransform attributeName="patternTransform" type="translate" values="0 0;0 4" dur="3.4s" repeatCount="indefinite"/>
     </pattern>
     <mask id="rrm" maskUnits="userSpaceOnUse" x="0" y="172" width="1000" height="68">
       <rect x="0" y="172" width="1000" height="68" fill="url(#rrmp)"/>
