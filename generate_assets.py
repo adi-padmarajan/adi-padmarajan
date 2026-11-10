@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 """
 Generates the animated SVG assets for adi-padmarajan's profile README.
-Concept: the README is a dive. Reading top to bottom you descend through the
-water column (surface, twilight, midnight, abyss) to the floor of the
-Challenger Deep. Abyssal navy throughout; bioluminescent cyan and violet are
-the only light sources.
+
+Concept: the README is a day on the trail in the Pacific Northwest. Reading top
+to bottom you walk from dawn to night:
+
+    06:12  dawn       alpenglow on glacier peaks, a lake holding the sunrise
+    10:40  forest     old-growth fir, fog, light falling through the canopy
+           field notes  who I am, plotted on a trail map (Victoria -> Vancouver)
+    15:20  river      golden hour, salmon running, the valley floor
+           trails     three signposted ways to reach me
+    22:47  camp       aurora over an alpine lake, a fire still going
+
+Every landscape is procedural (midpoint-displacement ridgelines, generated
+conifers, contour maps), so re-running with the same seeds reproduces the
+exact same files. Everything animates with CSS / SMIL only, which is what
+GitHub allows inside an <img>.
 
 Run:  python3 generate_assets.py
 Out:  assets/*.svg
@@ -14,740 +25,1355 @@ import math
 import os
 import random
 
-random.seed(10935)   # Challenger Deep, in metres
-
-OUT = "assets"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 os.makedirs(OUT, exist_ok=True)
 
 # ── design tokens ────────────────────────────────────────────────────────────
-ABYSS = "#01040B"   # deepest background
-DEEP  = "#030B1C"   # panel base
-PANEL = "#061229"   # panel fill
-LINE  = "#132A4F"   # hairline / border
-MUTE  = "#5873A0"   # muted text
-FOAM  = "#DCEBFF"   # primary text
-BIO   = "#38E1FF"   # bioluminescent cyan, primary accent
-TIDE  = "#3B82F6"   # electric blue
-VOLT  = "#8B6CFF"   # violet glow, secondary accent
-SURF  = "#0C3B6E"   # sunlit surface water
+NIGHT  = "#050A14"
+INK    = "#0A1714"   # darkest forest
+PINE   = "#12302A"
+MOSS   = "#3F6B4E"
+FERN   = "#8CC09A"
+SAGE   = "#A9C4AA"
+CREAM  = "#FFF4E2"
+GOLD   = "#F4C27A"
+EMBER  = "#F28B4C"
+AURORA = "#6CF5BE"
+LILAC  = "#A98BFF"
 
-MONO = "ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace"
+SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,'Times New Roman',serif"
+SANS  = "ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif"
+MONO  = "ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace"
+
+EASE = "cubic-bezier(.16,1,.3,1)"   # expo-out: everything settles, nothing bounces
 
 
 def write(name, content):
     path = os.path.join(OUT, name)
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"  {path}  ({len(content):,} bytes)")
+    print(f"  assets/{name:<22} {len(content) / 1024:6.1f} KB")
 
 
-# ── shared particles ─────────────────────────────────────────────────────────
-def snow(n, W, rmax=1.6, opmax=0.5):
-    """Marine snow: slow-sinking specks, each on its own clock so the field never syncs."""
+def n(v):
+    """Compact number for path data."""
+    s = f"{v:.1f}"
+    return s[:-2] if s.endswith(".0") else s
+
+
+def P(x, y):
+    return f"{n(x)} {n(y)}"
+
+
+# ── geometry ─────────────────────────────────────────────────────────────────
+def ridge(rnd, x0, x1, base, rough, peaks=(), iters=7, decay=.56):
+    """Midpoint-displacement ridgeline with hand-placed peaks laid on top."""
+    N = 2 ** iters + 1
+    ys = [0.0] * N
+    ys[0], ys[-1] = rnd.uniform(-1, 1) * rough, rnd.uniform(-1, 1) * rough
+    step, s = N - 1, rough
+    while step > 1:
+        h = step // 2
+        for i in range(h, N - 1, step):
+            ys[i] = (ys[i - h] + ys[i + h]) / 2 + rnd.uniform(-1, 1) * s
+        s *= decay
+        step = h
+    pts = []
+    for i, y in enumerate(ys):
+        x = x0 + (x1 - x0) * i / (N - 1)
+        lift = sum(ph * max(0.0, 1 - abs(x - px) / pw) ** 1.45 for px, ph, pw in peaks)
+        pts.append((x, base + y - lift))
+    return pts
+
+
+def yat(pts, x):
+    for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+        if ax <= x <= bx:
+            return ay + (by - ay) * (x - ax) / (bx - ax)
+    return pts[-1][1] if x > pts[-1][0] else pts[0][1]
+
+
+def fill_under(pts, bottom):
+    return (f"M{P(pts[0][0], bottom)} L" + " L".join(P(x, y) for x, y in pts)
+            + f" L{P(pts[-1][0], bottom)}Z")
+
+
+def line_of(pts):
+    return "M" + " L".join(P(x, y) for x, y in pts)
+
+
+def smooth(pts, closed=False):
+    """Catmull-Rom through the points, emitted as cubic Béziers."""
+    if closed:
+        Q = [pts[-1]] + list(pts) + [pts[0], pts[1]]
+        segs = range(1, len(pts) + 1)
+    else:
+        Q = [pts[0]] + list(pts) + [pts[-1]]
+        segs = range(1, len(pts))
+    d = f"M{P(*Q[1])}"
+    for i in segs:
+        p0, p1, p2, p3 = Q[i - 1], Q[i], Q[i + 1], Q[i + 2]
+        c1 = (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6)
+        c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
+        d += f" C{P(*c1)} {P(*c2)} {P(*p2)}"
+    return d + ("Z" if closed else "")
+
+
+def snowcap(rnd, pts, snowline, depth=(10, 34)):
+    """Snow follows the ridge down to a ragged line just below the snowline."""
+    top, bot = [], []
+    for x, y in pts:
+        if y < snowline + 6:
+            top.append((x, y))
+            bot.append((x, max(y, min(y + rnd.uniform(*depth), snowline + rnd.uniform(-8, 10)))))
+        elif top:
+            top.append((x, y))
+            bot.append((x, y))
+    if not top:
+        return ""
+    return "M" + " L".join(P(x, y) for x, y in top) + " L" + " L".join(P(x, y) for x, y in reversed(bot)) + "Z"
+
+
+def fir(rnd, x, base, h, wr=.34):
+    """A Douglas-fir / spruce silhouette: drooping tiers, slightly asymmetric."""
+    w = h * wr * rnd.uniform(.85, 1.15)
+    tiers = max(3, min(10, int(h / 8)))
+    top = base - h
+    crown = base - h * .06
+    R, L = [], []
+    for i in range(tiers):
+        t = (i + 1) / tiers
+        ty = top + (crown - top) * t
+        for side, out in ((1, R), (-1, L)):
+            tw = w / 2 * (.16 + .84 * t) * rnd.uniform(.78, 1.16)
+            out.append((x + side * tw, ty + h * .016))
+            if i < tiers - 1:
+                out.append((x + side * tw * .38, ty - h * .006))
+    tr = max(.6, w * .045)
+    pts = [(x, top + rnd.uniform(-h * .02, 0))] + R + [(x + tr, crown), (x + tr, base), (x - tr, base), (x - tr, crown)] + L[::-1]
+    return "M" + "L".join(P(px, py) for px, py in pts) + "Z"
+
+
+def faces(rnd, pts, peaks, sun_x, bottom):
+    """The face of each peak turned away from the sun, from crest to a ragged crease."""
     out = []
-    for _ in range(n):
-        dur = random.uniform(9, 22)
-        out.append(
-            f'<circle class="snow" cx="{random.uniform(0, W):.0f}" cy="-4" r="{random.uniform(.4, rmax):.1f}" '
-            f'fill-opacity="{random.uniform(.12, opmax):.2f}" '
-            f'style="animation-duration:{dur:.1f}s;animation-delay:-{random.uniform(0, dur):.1f}s"/>'
-        )
-    return "\n    ".join(out)
+    for px, ph, pw in peaks:
+        cand = [p for p in pts if abs(p[0] - px) < 26]
+        if not cand:
+            continue
+        top = min(cand, key=lambda p: p[1])
+        side = -1 if px < sun_x else 1
+        edge, lowest = [], top[1]
+        for p in sorted((p for p in pts if (p[0] - top[0]) * side >= 0), key=lambda p: p[0] * side):
+            if abs(p[0] - top[0]) > pw * .9 or p[1] < lowest - 7:
+                break
+            lowest = max(lowest, p[1])
+            edge.append(p)
+        if len(edge) < 3:
+            continue
+        vx, vy = edge[-1]
+        foot_y = min(bottom, vy + (vy - top[1]) * .7)
+        foot = (top[0] + (vx - top[0]) * .55, foot_y)
+        crease, steps = [], 7
+        for k in range(steps, 0, -1):
+            t = k / steps
+            crease.append((top[0] + (foot[0] - top[0]) * t ** 1.3 + (rnd.uniform(-4, 4) if k < steps else 0),
+                           top[1] + (foot[1] - top[1]) * t))
+        out.append("M" + " L".join(P(*p) for p in edge) + f" L{P(vx, (vy + foot_y) / 2)} L"
+                   + " L".join(P(*p) for p in crease) + "Z")
+    return "".join(out)
 
 
-def snow_css(H):
-    return (f".snow {{ fill:{FOAM}; animation:sink linear infinite; }}\n"
-            f"    @keyframes sink {{ from {{transform:translate(0,0)}} to {{transform:translate(-14px,{H + 10}px)}} }}")
+def fern(rnd, x, y, length, angle, curl, leaf):
+    """A sword fern frond: an arching stem with alternating leaflets."""
+    N = 14
+    a, px, py = math.radians(angle), x, y
+    stem, blades = [(px, py)], []
+    for i in range(1, N + 1):
+        t = i / N
+        a += math.radians(curl) / N
+        px, py = px + math.cos(a) * length / N, py + math.sin(a) * length / N
+        stem.append((px, py))
+        lw = leaf * math.sin(math.pi * min(1, t * 1.15)) * (1 - .35 * t) + .6
+        for s_ in (1, -1):
+            nx, ny = math.cos(a + s_ * 1.15), math.sin(a + s_ * 1.15)
+            tx, ty = math.cos(a), math.sin(a)
+            blades.append(f"M{P(px - tx * 2, py - ty * 2)} L{P(px + nx * lw + tx * 2.5, py + ny * lw + ty * 2.5)} L{P(px + tx * 1.5, py + ty * 1.5)}Z")
+    return line_of(stem), "".join(blades)
 
 
-def bubbles(n, x0, x1, y0, rmax=3.2):
+def treeline(rnd, rid, hmin, hmax, gap, sink=2, x0=None, x1=None, hscale=None):
+    """A band of firs standing on a ridgeline."""
+    x0 = rid[0][0] if x0 is None else x0
+    x1 = rid[-1][0] if x1 is None else x1
+    out, x = [], x0 + rnd.uniform(0, gap)
+    while x < x1:
+        h = rnd.uniform(hmin, hmax) * (hscale(x) if hscale else 1)
+        out.append(fir(rnd, x, yat(rid, x) + sink, h))
+        x += gap * rnd.uniform(.55, 1.25)
+    return "".join(out)
+
+
+# ── shared bits ──────────────────────────────────────────────────────────────
+def motes(rnd, count, x0, x1, y0, y1, color, rmax=1.5, cls="mote"):
     out = []
-    for _ in range(n):
-        dur = random.uniform(4, 9)
-        out.append(
-            f'<circle class="bub" cx="{random.uniform(x0, x1):.0f}" cy="{y0}" r="{random.uniform(1, rmax):.1f}" '
-            f'style="animation-duration:{dur:.1f}s;animation-delay:-{random.uniform(0, dur):.1f}s"/>'
-        )
-    return "\n    ".join(out)
+    for _ in range(count):
+        d = rnd.uniform(7, 16)
+        out.append(f'<circle class="{cls}" cx="{n(rnd.uniform(x0, x1))}" cy="{n(rnd.uniform(y0, y1))}" '
+                   f'r="{n(rnd.uniform(.5, rmax))}" fill="{color}" '
+                   f'style="animation-duration:{d:.1f}s;animation-delay:-{rnd.uniform(0, d):.1f}s"/>')
+    return "".join(out)
 
 
-def bubble_css(rise):
-    return (f".bub {{ fill:none; stroke:{BIO}; stroke-width:1; stroke-opacity:.55; animation:rise ease-in infinite; }}\n"
-            f"    @keyframes rise {{\n"
-            f"      0%   {{ transform:translate(0,0); opacity:0; }}\n"
-            f"      12%  {{ opacity:1; }}\n"
-            f"      50%  {{ transform:translate(5px,-{rise / 2:.0f}px); }}\n"
-            f"      88%  {{ opacity:.8; }}\n"
-            f"      100% {{ transform:translate(-3px,-{rise}px); opacity:0; }}\n"
-            f"    }}")
+MOTE_CSS = """.mote { animation:mote ease-in-out infinite; }
+    @keyframes mote {
+      0%   { transform:translate(0,0);      opacity:0; }
+      20%  { opacity:.9; }
+      50%  { transform:translate(9px,-14px); opacity:.35; }
+      80%  { opacity:.85; }
+      100% { transform:translate(-4px,-30px); opacity:0; }
+    }"""
 
 
-# ── jellyfish ────────────────────────────────────────────────────────────────
-BELL = ("M-30 0 C-30 -34 30 -34 30 0 C24 4 18 -1 12 3 C6 -1 0 4 -6 1 "
-        "C-12 -2 -18 4 -24 2 C-27 1 -29 1 -30 0Z")
+def bird(x, y, s, dur, delay):
+    a = "M-7 0 Q-3.5 -4.5 0 0 Q3.5 -4.5 7 0"
+    b = "M-7 1.5 Q-3.5 2.5 0 0 Q3.5 2.5 7 1.5"
+    c = "M-7 -2 Q-3.5 -1 0 0 Q3.5 -1 7 -2"
+    return (f'<g transform="translate({n(x)},{n(y)}) scale({s})"><path d="{a}">'
+            f'<animate attributeName="d" dur="{dur}s" begin="-{delay}s" repeatCount="indefinite" values="{a};{c};{b};{c};{a}"/>'
+            f'</path></g>')
 
 
-def jelly(x, y, s, a, b, idx, delay):
-    """Bell pulses (SMIL scale), tentacles undulate (SMIL path morph), whole body drifts (CSS)."""
-    tents = []
-    for k, tx in enumerate([-20, -10, 0, 10, 20]):
-        L = 48 + (k % 2) * 18
-        A = f"M{tx} 2 C{tx + 7} {L * .3:.0f} {tx - 7} {L * .6:.0f} {tx} {L}"
-        B = f"M{tx} 2 C{tx - 7} {L * .3:.0f} {tx + 7} {L * .6:.0f} {tx + 3} {L}"
-        tents.append(f'<path d="{A}"><animate attributeName="d" dur="{3 + k * .35:.2f}s" '
-                     f'repeatCount="indefinite" values="{A};{B};{A}"/></path>')
-    arms = []
-    for tx in (-4, 4):
-        A = f"M{tx} 2 C{tx + 12} 26 {tx - 12} 52 {tx} 84"
-        B = f"M{tx} 2 C{tx - 12} 26 {tx + 12} 52 {tx + 4} 84"
-        arms.append(f'<path d="{A}"><animate attributeName="d" dur="4.4s" '
-                    f'repeatCount="indefinite" values="{A};{B};{A}"/></path>')
-    tents, arms = "".join(tents), "".join(arms)
-
-    return f"""<radialGradient id="jg{idx}" cx="50%" cy="25%" r="75%">
-      <stop offset="0%"   stop-color="{a}" stop-opacity=".60"/>
-      <stop offset="55%"  stop-color="{b}" stop-opacity=".22"/>
-      <stop offset="100%" stop-color="{b}" stop-opacity="0"/>
-    </radialGradient>""", f"""<g transform="translate({x},{y}) scale({s})">
-      <g class="drift" style="animation-delay:-{delay}s">
-        <g fill="none" stroke="{a}" stroke-width="1" stroke-opacity=".5" stroke-linecap="round">{tents}</g>
-        <g fill="none" stroke="{b}" stroke-width="2.4" stroke-opacity=".45" stroke-linecap="round">{arms}</g>
-        <g>
-          <animateTransform attributeName="transform" type="scale" values="1 1;1.07 .88;1 1" dur="3.2s" repeatCount="indefinite"/>
-          <path d="{BELL}" fill="url(#jg{idx})" stroke="{a}" stroke-opacity=".85" stroke-width="1.2" filter="url(#jglow)"/>
-          <path d="M-21 -3 Q0 -25 21 -3" fill="none" stroke="{b}" stroke-opacity=".5"/>
-          <path d="M-11 -2 Q0 -15 11 -2" fill="none" stroke="{a}" stroke-opacity=".35"/>
-        </g>
-      </g>
-    </g>"""
+def ripple_mask(mid, H, W, y0, period=5, on=3.4, gap="#8c8c8c"):
+    """Horizontal bands that break a reflection up like moving water."""
+    return f"""<pattern id="{mid}p" width="{W}" height="{period}" patternUnits="userSpaceOnUse">
+      <rect width="{W}" height="{on}" fill="#fff"/>
+      <rect y="{on}" width="{W}" height="{period - on}" fill="{gap}"/>
+      <animateTransform attributeName="patternTransform" type="translate" values="0 0;0 {period}" dur="3.4s" repeatCount="indefinite"/>
+    </pattern>
+    <mask id="{mid}" maskUnits="userSpaceOnUse" x="0" y="{y0}" width="{W}" height="{H - y0}">
+      <rect x="0" y="{y0}" width="{W}" height="{H - y0}" fill="url(#{mid}p)"/>
+    </mask>"""
 
 
-# ── 1. HERO BANNER: THE SURFACE ──────────────────────────────────────────────
+def frame(W, H, rx, stroke, op=".35"):
+    return f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="{rx}" fill="none" stroke="{stroke}" stroke-opacity="{op}"/>'
+
+
+def reduced(selectors, extra=""):
+    return f"@media (prefers-reduced-motion: reduce) {{ {selectors} {{ animation:none !important; }} {extra} }}"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 1. HERO — DAWN
+# ═════════════════════════════════════════════════════════════════════════════
 def banner():
-    W, H = 1200, 400
-    cx, cy = W / 2, 182          # name centre
+    rnd = random.Random(4928)
+    W, H0, HZ = 1200, 620, 476            # scene is drawn on a 620-high canvas...
+    OFF = 54                              # ...then pushed down to give the name open sky
+    H = H0 + OFF
+    SX, SY = 760, 342                      # the sun, rising out of the valley
 
-    # god rays slanting down from the surface
+    L1 = ridge(rnd, -20, W + 20, 372, 14, [(150, 140, 260), (330, 160, 230), (560, 92, 200), (990, 168, 250), (1150, 112, 200)])
+    L2 = ridge(rnd, -20, W + 20, 420, 16, [(60, 150, 220), (420, 110, 210), (1120, 175, 260), (880, 58, 140)])
+    L3 = ridge(rnd, -20, W + 20, 448, 10, [(250, 72, 260), (620, 36, 180), (1000, 80, 240)], iters=6)
+    L4 = ridge(rnd, -20, W + 20, 466, 6, [(130, 32, 240), (520, 16, 200), (900, 36, 260)], iters=5)
+    L5 = ridge(rnd, -20, W + 20, 478, 3, [], iters=4)
+
+    snow1 = snowcap(rnd, L1, 300)
+    shade1 = faces(rnd, L1, [(150, 140, 260), (330, 160, 230), (560, 92, 200), (990, 168, 250), (1150, 112, 200)], SX, HZ + 20)
+    shade2 = faces(rnd, L2, [(60, 150, 220), (420, 110, 210), (1120, 175, 260), (880, 58, 140)], SX, HZ + 20)
+    snow2 = snowcap(rnd, L2, 296, (6, 22))
+    trees3 = treeline(rnd, L3, 5, 10, 4.5, sink=3)
+    trees4 = treeline(rnd, L4, 9, 22, 6, sink=3)
+    trees5 = treeline(rnd, L5, 16, 46, 7.5, sink=4)
+
+    # god rays from the sun, behind every range
     rays = []
-    for x in (120, 290, 450, 620, 780, 930, 1070):
-        w, sk = random.randint(26, 72), random.randint(60, 150)
-        rays.append(
-            f'<polygon class="ray" points="{x},0 {x + w},0 {x + w + sk},{H * .82:.0f} {x + sk - w * .5:.0f},{H * .82:.0f}" '
-            f'style="animation-delay:-{random.uniform(0, 8):.1f}s"/>'
-        )
-    rays = "\n      ".join(rays)
+    for k in range(13):
+        a = math.radians(-172 + k * 13.5 + rnd.uniform(-3, 3))
+        w = math.radians(rnd.uniform(1.6, 4.2))
+        r = 900
+        rays.append(f'<path d="M{SX} {SY} L{P(SX + r * math.cos(a - w), SY + r * math.sin(a - w))} '
+                    f'L{P(SX + r * math.cos(a + w), SY + r * math.sin(a + w))}Z" '
+                    f'style="animation-delay:-{rnd.uniform(0, 9):.1f}s"/>')
+    rays = "".join(rays)
 
-    # surface chop: two sine bands that scroll at different speeds
-    def wave(y, amp):
-        return f"M-200 {y} " + " ".join(f"q25 {-amp} 50 0 t50 0" for _ in range(15)) + f" L{W + 300} -20 L-200 -20Z"
+    # fading stars at the top of the sky
+    stars = "".join(
+        f'<circle class="tw" cx="{n(rnd.uniform(0, W))}" cy="{n(rnd.uniform(6, 150) ** 1.05)}" r="{n(rnd.uniform(.4, 1.1))}" '
+        f'style="animation-delay:-{rnd.uniform(0, 5):.1f}s;animation-duration:{rnd.uniform(3, 6):.1f}s"/>'
+        for _ in range(46))
 
-    # depth ruler that scrolls upward forever, so the whole banner reads as sinking
-    ticks = "".join(
-        f'<line x1="22" y1="{y}" x2="{40 if y % 60 == 0 else 30}" y2="{y}"/>'
-        for y in range(-60, H + 61, 12)
-    )
+    # alpenglow wisps of cloud near the horizon
+    clouds = []
+    for cx, cy, rx, ry, op, dur in [(300, 268, 230, 9, .55, 46), (900, 252, 260, 11, .5, 58),
+                                    (620, 292, 180, 6, .45, 40), (130, 236, 150, 6, .35, 52),
+                                    (1080, 300, 170, 7, .4, 44), (520, 216, 120, 4, .3, 60)]:
+        clouds.append(f'<ellipse class="cloud" cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="url(#cloud)" '
+                      f'opacity="{op}" style="animation-duration:{dur}s;animation-delay:-{rnd.uniform(0, dur):.0f}s"/>')
+    clouds = "".join(clouds)
 
-    jd, jb = zip(
-        jelly(1046, 112, 1.15, BIO,  VOLT, 0, 0),
-        jelly(178,  262, 0.62, VOLT, BIO,  1, 3.1),
-        jelly(930,  300, 0.42, BIO,  TIDE, 2, 5.4),
-    )
-    jd, jb = "\n    ".join(jd), "\n    ".join(jb)
+    # mist that sits in the valleys
+    mist = []
+    for cx, cy, rx, ry, dur in [(200, 452, 260, 14, 38), (720, 458, 300, 12, 46), (1080, 448, 240, 16, 34),
+                                (480, 470, 220, 9, 52), (950, 472, 260, 10, 42)]:
+        mist.append(f'<ellipse class="mist" cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="url(#mistg)" '
+                    f'style="animation-duration:{dur}s;animation-delay:-{rnd.uniform(0, dur):.0f}s"/>')
+    mist = "".join(mist)
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Aditya Padmarajan — Software Developer">
-  <title>Aditya Padmarajan — Software Developer</title>
+    # sun glitter on the lake
+    glints = []
+    for i in range(22):
+        y = HZ + 5 + i * 6.2 + rnd.uniform(-1, 1)
+        w = 52 * (1 - i / 26) * rnd.uniform(.5, 1.1) + 4
+        glints.append(f'<rect class="glint" x="{n(SX - w / 2 + rnd.uniform(-8, 8))}" y="{n(y)}" width="{n(w)}" height="1.3" rx=".8" '
+                      f'style="animation-delay:-{rnd.uniform(0, 2.4):.2f}s;animation-duration:{rnd.uniform(1.6, 3):.2f}s"/>')
+    glints = "".join(glints)
+
+    ripples = "".join(
+        f'<rect class="rip" x="{n(rnd.uniform(-200, W))}" y="{n(HZ + 14 + i * 9 + rnd.uniform(-2, 2))}" '
+        f'width="{n(rnd.uniform(60, 260))}" height=".8" style="animation-duration:{rnd.uniform(14, 26):.1f}s;'
+        f'animation-delay:-{rnd.uniform(0, 26):.1f}s"/>'
+        for i in range(14))
+
+    # the near shore and two stands of old fir framing the frame
+    bank = smooth([(-20, 588), (160, 596), (380, 610), (640, 606), (900, 600), (1080, 588), (1220, 578)]) + f" L{W + 20} {H + 10} L-20 {H + 10}Z"
+    fg_back = "".join(f'<g class="sway" style="animation-delay:-{d}s">' + f'<path d="{fir(rnd, x, b, h, .30)}"/>' + "</g>"
+                      for x, b, h, d in [(20, 650, 250, 1), (135, 652, 300, 3), (1085, 652, 290, 2), (1190, 650, 230, 4)])
+    fg_front = "".join(f'<g class="sway" style="animation-delay:-{d}s">' + f'<path d="{fir(rnd, x, b, h, .30)}"/>' + "</g>"
+                       for x, b, h, d in [(-30, 660, 560, 0), (62, 664, 450, 2.5), (1150, 664, 440, 1.5), (1236, 660, 580, 3.5)])
+    reeds = "".join(
+        f'<path class="reed" d="M{n(x)} {n(yy)} q{n(rnd.uniform(-3, 3))} -{n(h / 2)} {n(rnd.uniform(-5, 5))} -{n(h)}" '
+        f'style="animation-delay:-{rnd.uniform(0, 4):.1f}s"/>'
+        for x in [rnd.uniform(240, 520) for _ in range(26)] + [rnd.uniform(760, 1000) for _ in range(20)]
+        for yy, h in [(604 + rnd.uniform(-4, 6), rnd.uniform(10, 26))])
+
+    hx, hy = 688, 588
+    hiker = f"""<g transform="translate({hx} {hy}) scale(1.5)">
+        <path d="M-6.6 0 L-6 -27 L-.7 -27 L-1.3 0Z M1.3 0 L.7 -27 L6 -27 L6.6 0Z"/>
+        <path d="M-8.4 0 h7.6 v-2.6 h-6.6z M.8 0 h7.6 l-1 -2.6 h-6.6z"/>
+        <path d="M-8 -25 C-9 -36 -9.6 -44 -7 -50 L7 -50 C9.6 -44 9 -36 8 -25Z"/>
+        <path d="M-8.6 -48 C-11.2 -40 -11.6 -32 -10.6 -23 L-8.2 -23 C-8.8 -32 -8 -40 -6.8 -46Z M8.6 -48 C11.2 -40 11.6 -32 10.6 -23 L8.2 -23 C8.8 -32 8 -40 6.8 -46Z"/>
+        <rect x="-8.6" y="-49" width="17.2" height="23" rx="3.2"/>
+        <rect x="-9" y="-54.5" width="18" height="5.2" rx="2.6"/>
+        <rect x="-1.8" y="-57" width="3.6" height="5"/>
+        <circle cy="-61" r="5.4"/>
+        <path d="M-5.6 -62 a5.6 5.6 0 0 1 11.2 0z"/>
+        <circle cy="-68" r="1.7"/>
+        <path d="M10.4 -24 L14.6 1" stroke="#070F0D" stroke-width="1.1"/>
+        <g fill="none" stroke="url(#rimlight)" stroke-width="1" stroke-linecap="round">
+          <path d="M2.4 -66.2 a5.4 5.4 0 0 1 3 5"/>
+          <path d="M9 -47 v17"/>
+          <path d="M11 -40 C11.6 -33 11.2 -28 10.6 -23"/>
+          <path d="M5.8 -26 L6.5 -2"/>
+        </g>
+      </g>"""
+    rock = smooth([(560, 640), (600, 606), (640, 594), (672, 588), (708, 587), (736, 592), (770, 606), (812, 640)]) + "Z"
+
+    flock = "".join(bird(dx, dy, s, d, de) for dx, dy, s, d, de in
+                    [(0, 0, 1.1, .9, 0), (-20, -9, .9, .85, .3), (-38, 6, .95, .95, .5), (-56, -14, .8, .8, .2), (-74, 2, .75, .9, .6)])
+    flock2 = "".join(bird(dx, dy, s, d, de) for dx, dy, s, d, de in
+                     [(0, 0, .6, .7, 0), (-12, -6, .55, .75, .2), (-22, 4, .5, .7, .4)])
+
+    floaters = motes(rnd, 34, 160, 1060, 330, 600, "#FFE2AE", 1.4)
+
+    # a faint lens flare, strung along the line from the sun through the frame's centre
+    fx, fy = W / 2, (H0 / 2) + 20
+    flare = "".join(
+        f'<circle cx="{n(SX + (fx - SX) * t)}" cy="{n(SY + (fy - SY) * t)}" r="{r}" fill="{c}" fill-opacity="{o}"/>'
+        for t, r, c, o in [(.55, 6, "#FFE6B8", .22), (1.25, 16, "#FFC9A0", .08), (1.6, 5, "#B9E2FF", .16),
+                           (2.1, 30, "#E8B7FF", .05), (2.5, 9, "#FFE6B8", .10)])
+
+    # parallax entrance: each layer rises out of the lake, nearer ones travel further
+    intro = "\n    ".join(
+        f"@keyframes up{i} {{ from {{ transform:translateY({d}px); }} to {{ transform:none; }} }}\n"
+        f"    .in{i} {{ animation:up{i} {dur}s {EASE} {dl}s both; }}"
+        for i, (d, dur, dl) in enumerate([(26, 3.2, .05), (44, 3.0, .15), (64, 2.8, .25), (84, 2.6, .35), (104, 2.4, .45), (150, 2.6, .2)], 1))
+
+    name_y = 230          # in scene space: the baseline sits right on the first range
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Aditya Padmarajan — Software Developer, Vancouver BC">
+  <title>Aditya Padmarajan — Software Developer · Vancouver, BC</title>
   <defs>
-    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="{SURF}"/>
-      <stop offset="28%"  stop-color="#072248"/>
-      <stop offset="62%"  stop-color="#03102A"/>
-      <stop offset="100%" stop-color="{ABYSS}"/>
+    <linearGradient id="sky" x1="0" y1="-{OFF}" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#141C3D"/>
+      <stop offset=".30" stop-color="#3B3F72"/>
+      <stop offset=".55" stop-color="#8A6A93"/>
+      <stop offset=".75" stop-color="#DD8E7C"/>
+      <stop offset=".90" stop-color="#F6B98A"/>
+      <stop offset="1"   stop-color="#FCDDAA"/>
     </linearGradient>
-    <linearGradient id="rayg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#9FD4FF" stop-opacity=".20"/>
-      <stop offset="100%" stop-color="#9FD4FF" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="vignette" cx="50%" cy="42%" r="70%">
-      <stop offset="55%"  stop-color="{ABYSS}" stop-opacity="0"/>
-      <stop offset="100%" stop-color="{ABYSS}" stop-opacity=".75"/>
+    <radialGradient id="glow" cx="{SX}" cy="{SY + 10}" r="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFE7B8" stop-opacity=".95"/>
+      <stop offset=".18" stop-color="#FFC48E" stop-opacity=".55"/>
+      <stop offset=".45" stop-color="#F49A84" stop-opacity=".18"/>
+      <stop offset="1"   stop-color="#F49A84" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="{BIO}"  stop-opacity=".45"/>
-      <stop offset="100%" stop-color="{VOLT}" stop-opacity=".25"/>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#FFFBF0"/>
+      <stop offset=".6"  stop-color="#FFE9BE"/>
+      <stop offset="1"   stop-color="#FFD394"/>
+    </radialGradient>
+    <radialGradient id="corona" cx="50%" cy="50%" r="50%">
+      <stop offset=".25" stop-color="#FFE5B0" stop-opacity=".9"/>
+      <stop offset="1"   stop-color="#FFE5B0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rayg" cx="{SX}" cy="{SY}" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFE9C2" stop-opacity=".17"/>
+      <stop offset="1"   stop-color="#FFE9C2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="{SX}" cy="{SY}" r="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFC890" stop-opacity=".62"/>
+      <stop offset="1"   stop-color="#FFC890" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cloud" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#FFD7BC"/>
+      <stop offset="1"   stop-color="#FFD7BC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mistg" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#FCE2D2" stop-opacity=".55"/>
+      <stop offset="1"   stop-color="#FCE2D2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="g1" x1="0" y1="190" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#BBA6CB"/><stop offset="1" stop-color="#EFBCA3"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="240" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8E7EAC"/><stop offset="1" stop-color="#CF9690"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="360" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5D5F88"/><stop offset="1" stop-color="#86708A"/></linearGradient>
+    <linearGradient id="g4" x1="0" y1="420" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#33465A"/><stop offset="1" stop-color="#46506A"/></linearGradient>
+    <linearGradient id="snow" x1="0" y1="180" x2="0" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFF1EE"/>
+      <stop offset="1"   stop-color="#F8CFC9" stop-opacity=".55"/>
     </linearGradient>
-    <filter id="jglow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="soft" x="-20%" y="-60%" width="140%" height="220%">
-      <feGaussianBlur stdDeviation="12"/>
-    </filter>
-    <!-- refraction: the name wobbles like it is being read through moving water -->
-    <filter id="refract" x="-5%" y="-40%" width="110%" height="180%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.03" numOctaves="1" seed="7" result="n">
-        <animate attributeName="baseFrequency" dur="11s" repeatCount="indefinite"
-                 values="0.006 0.03;0.008 0.042;0.006 0.03"/>
-      </feTurbulence>
-      <feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/>
-    </filter>
-    {jd}
-    <clipPath id="frame"><rect width="{W}" height="{H}" rx="6"/></clipPath>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#F7C7A6" stop-opacity="0"/>
+      <stop offset=".7"  stop-color="#F7C7A6" stop-opacity=".45"/>
+      <stop offset="1"   stop-color="#F7C7A6" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="{HZ}" x2="0" y2="{H0}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#F5C495"/>
+      <stop offset=".22" stop-color="#B07F8E"/>
+      <stop offset=".6"  stop-color="#3D4A6C"/>
+      <stop offset="1"   stop-color="#162338"/>
+    </linearGradient>
+    <linearGradient id="deep" x1="0" y1="{HZ}" x2="0" y2="{H0}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#0E1828" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#0E1828" stop-opacity=".75"/>
+    </linearGradient>
+    <linearGradient id="hzline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#FFE6C0" stop-opacity="0"/>
+      <stop offset=".63" stop-color="#FFE6C0" stop-opacity=".9"/>
+      <stop offset="1"   stop-color="#FFE6C0" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vig" cx="50%" cy="45%" r="75%">
+      <stop offset=".6"  stop-color="#0A0F1E" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#0A0F1E" stop-opacity=".55"/>
+    </radialGradient>
+    <linearGradient id="topshade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#0A0E2C" stop-opacity=".7"/>
+      <stop offset=".6"  stop-color="#0A0E2C" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="#0A0E2C" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="namefill" x1="0" y1="{name_y - 100}" x2="0" y2="{name_y + 10}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#FFF1DE"/>
+      <stop offset="1"   stop-color="#FFC9A0"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="190" x2="0" y2="{HZ - 40}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#3B2D63" stop-opacity=".40"/>
+      <stop offset="1"   stop-color="#3B2D63" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rimlight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#FFC890" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#FFC890" stop-opacity=".9"/>
+    </linearGradient>
+    {ripple_mask("rm", H0, W, HZ)}
+    <clipPath id="lakeclip"><rect y="{HZ}" width="{W}" height="{H0 - HZ}"/></clipPath>
+    <clipPath id="frame"><rect width="{W}" height="{H}" rx="18"/></clipPath>
   </defs>
 
   <style>
-    .ray {{ fill:url(#rayg); animation:shimmer 8s ease-in-out infinite; }}
-    @keyframes shimmer {{ 0%,100% {{opacity:.35}} 50% {{opacity:1}} }}
+    {intro}
+    @keyframes sunup  {{ from {{ transform:translateY(96px); }} to {{ transform:none; }} }}
+    @keyframes fadein {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
 
-    .w1 {{ fill:#2A78C2; fill-opacity:.22; animation:chop 7s linear infinite; }}
-    .w2 {{ fill:#5AB0FF; fill-opacity:.12; animation:chop 4.5s linear infinite reverse; }}
-    @keyframes chop {{ from {{transform:translateX(0)}} to {{transform:translateX(-100px)}} }}
+    .sunrise {{ animation:sunup 4.2s {EASE} both; }}
+    .rays    {{ fill:url(#rayg); animation:fadein 4s ease 1s both; }}
+    .rays path {{ animation:ray 9s ease-in-out infinite; }}
+    @keyframes ray {{ 0%,100% {{ opacity:.35; }} 50% {{ opacity:1; }} }}
+    .corona  {{ transform-box:fill-box; transform-origin:center; animation:corona 6s ease-in-out infinite; }}
+    @keyframes corona {{ 0%,100% {{ transform:scale(1); opacity:.75; }} 50% {{ transform:scale(1.12); opacity:1; }} }}
 
-    .ruler {{ stroke:{BIO}; stroke-opacity:.35; stroke-width:1; animation:descend 2.6s linear infinite; }}
-    @keyframes descend {{ from {{transform:translateY(0)}} to {{transform:translateY(-60px)}} }}
+    .tw {{ fill:#FFF6E6; animation:tw ease-in-out infinite; }}
+    @keyframes tw {{ 0%,100% {{ opacity:.15; }} 50% {{ opacity:.85; }} }}
+    .cloud {{ animation:cloud ease-in-out infinite alternate; }}
+    @keyframes cloud {{ from {{ transform:translateX(-50px); }} to {{ transform:translateX(50px); }} }}
+    .mist  {{ animation:cloud ease-in-out infinite alternate; }}
 
-    .drift {{ animation:drift 9s ease-in-out infinite; }}
-    @keyframes drift {{ 0%,100% {{transform:translate(0,0)}} 50% {{transform:translate(8px,-16px)}} }}
+    .glint {{ fill:#FFEFC8; animation:glint ease-in-out infinite; }}
+    @keyframes glint {{ 0%,100% {{ opacity:.12; }} 50% {{ opacity:.95; }} }}
+    .rip   {{ fill:#FFE9CF; opacity:.16; animation:rip linear infinite; }}
+    @keyframes rip {{ from {{ transform:translateX(0); }} to {{ transform:translateX(260px); }} }}
 
-    {snow_css(H)}
-    {bubble_css(H + 20)}
+    .sway {{ transform-box:fill-box; transform-origin:50% 100%; animation:sway 8s ease-in-out infinite alternate; }}
+    @keyframes sway {{ from {{ transform:rotate(-.7deg); }} to {{ transform:rotate(.7deg); }} }}
+    .reed {{ fill:none; stroke:#0E1C18; stroke-width:1.3; stroke-linecap:round;
+             transform-box:fill-box; transform-origin:50% 100%; animation:reed 3.6s ease-in-out infinite alternate; }}
+    @keyframes reed {{ from {{ transform:rotate(-5deg); }} to {{ transform:rotate(5deg); }} }}
 
-    .name  {{ font-family:{MONO}; font-size:60px; font-weight:700; letter-spacing:7px; }}
-    .halo  {{ fill:{BIO}; animation:breathe 5s ease-in-out infinite; }}
-    @keyframes breathe {{ 0%,100% {{opacity:.25}} 50% {{opacity:.6}} }}
+    .flock  {{ fill:none; stroke:#2A2240; stroke-width:1.5; stroke-linecap:round; animation:fly 30s linear infinite; }}
+    .flock2 {{ fill:none; stroke:#4A3E62; stroke-width:1.4; stroke-linecap:round; animation:fly 44s linear -18s infinite; }}
+    @keyframes fly {{ from {{ transform:translate(-120px,30px); }} to {{ transform:translate({W + 160}px,-40px); }} }}
+    {MOTE_CSS}
 
-    .eyebrow {{ font-family:{MONO}; font-size:13px; letter-spacing:5.5px; fill:{BIO}; fill-opacity:.9; }}
-    .sub     {{ font-family:{MONO}; font-size:15.5px; letter-spacing:1.2px; fill:{MUTE}; }}
-    .subhi   {{ fill:{FOAM}; }}
-    .meta    {{ font-family:{MONO}; font-size:11px; letter-spacing:2.4px; fill:{MUTE}; }}
-    .depth   {{ font-family:{MONO}; font-size:11px; letter-spacing:2px; fill:{BIO}; }}
+    .name    {{ font-family:{SERIF}; font-size:118px; letter-spacing:1.5px; }}
+    .emerge  {{ animation:emerge 5.2s {EASE} 1s both; }}
+    @keyframes emerge {{ 0% {{ transform:translateY(190px); opacity:0; }} 18% {{ opacity:1; }} 100% {{ transform:none; opacity:1; }} }}
+    .nglow   {{ animation:nglow 7s ease-in-out infinite; }}
+    @keyframes nglow {{ 0%,100% {{ opacity:.35; }} 50% {{ opacity:.7; }} }}
+    .flare   {{ animation:flare 7s ease-in-out infinite; }}
+    @keyframes flare {{ 0%,100% {{ opacity:.6; }} 50% {{ opacity:1; }} }}
 
-    .cursor {{ fill:{BIO}; animation:blink 1.05s steps(1) infinite; }}
-    @keyframes blink {{ 0%,50% {{opacity:1}} 51%,100% {{opacity:0}} }}
-    .pulse {{ animation:pulse 2.4s ease-in-out infinite; }}
-    @keyframes pulse {{ 0%,100% {{opacity:.3}} 50% {{opacity:1}} }}
-    .sink {{ animation:sinkcue 2.2s ease-in-out infinite; }}
-    @keyframes sinkcue {{ 0%,100% {{transform:translateY(0);opacity:.5}} 50% {{transform:translateY(5px);opacity:1}} }}
-
-    @media (prefers-reduced-motion: reduce) {{
-      .ray,.w1,.w2,.ruler,.drift,.snow,.bub,.halo,.cursor,.pulse,.sink {{ animation:none; }}
-      .bub {{ opacity:0; }}
-    }}
+    {reduced(".in1,.in2,.in3,.in4,.in5,.in6,.sunrise,.rays,.rays path,.corona,.tw,.cloud,.mist,.glint,.rip,.sway,.reed,.flock,.flock2,.mote,.emerge,.nglow,.flare,pattern",
+              ".flock,.flock2,.mote { opacity:0; }")}
   </style>
 
   <g clip-path="url(#frame)">
-    <rect width="{W}" height="{H}" fill="url(#water)"/>
+   <g transform="translate(0 {OFF})">
+    <!-- sky -->
+    <rect y="-{OFF}" width="{W}" height="{HZ + 4 + OFF}" fill="url(#sky)"/>
+    <rect y="-{OFF}" width="{W}" height="{HZ + 4 + OFF}" fill="url(#glow)"/>
+    <rect y="-{OFF}" width="{W}" height="240" fill="url(#topshade)"/>
+    <g>{stars}</g>
+    <g class="rays">{rays}</g>
+    <g>{clouds}</g>
 
-    <!-- light from above -->
-    <g>
-      {rays}
-    </g>
-    <path class="w1" d="{wave(16, 7)}"/>
-    <path class="w2" d="{wave(10, 5)}"/>
-
-    <!-- life -->
-    {jb}
-    <g>
-    {snow(110, W, rmax=1.8)}
-    </g>
-    <g>
-    {bubbles(22, 40, W - 40, H + 6)}
-    </g>
-
-    <!-- depth ruler -->
-    <g class="ruler">{ticks}</g>
-    <path d="M44 {H / 2:.0f} l7 -5 v10z" fill="{BIO}"/>
-    <text class="depth" x="56" y="{H / 2 + 4:.0f}">0000 m</text>
-    <text class="meta" x="56" y="{H / 2 + 20:.0f}" font-size="9.5">SURFACE</text>
-
-    <!-- name block -->
-    <path d="M{cx - 190:.0f} 122 h70 M{cx + 120:.0f} 122 h70" stroke="{BIO}" stroke-opacity=".45"/>
-    <text class="eyebrow" x="{cx:.0f}" y="126" text-anchor="middle">SOFTWARE DEVELOPER</text>
-    <g filter="url(#refract)">
-      <text class="name halo" x="{cx:.0f}" y="{cy}" text-anchor="middle" filter="url(#soft)">ADITYA PADMARAJAN</text>
-      <text class="name" x="{cx:.0f}" y="{cy}" text-anchor="middle" fill="{FOAM}">ADITYA<tspan fill="{BIO}"> PADMARAJAN</tspan></text>
+    <!-- the name: behind the first range, rising from it -->
+    <g class="emerge">
+      <g transform="translate(0 5)" fill="none" stroke="#120F33" stroke-linejoin="round">
+        <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" stroke-width="22" stroke-opacity=".06">Aditya Padmarajan</text>
+        <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" stroke-width="12" stroke-opacity=".09">Aditya Padmarajan</text>
+        <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" stroke-width="5" stroke-opacity=".14">Aditya Padmarajan</text>
+      </g>
+      <g class="nglow" fill="none" stroke="#FFCB94" stroke-linejoin="round">
+        <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" stroke-width="34" stroke-opacity=".05">Aditya Padmarajan</text>
+        <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" stroke-width="16" stroke-opacity=".08">Aditya Padmarajan</text>
+      </g>
+      <text class="name" x="{W / 2}" y="{name_y}" text-anchor="middle" fill="url(#namefill)">Aditya Padmarajan</text>
     </g>
 
-    <text class="sub" x="{cx:.0f}" y="{cy + 40}" text-anchor="middle">
-      <tspan fill="{BIO}">&#8250;</tspan>
-      <tspan class="subhi" dx="10">STEMCELL Technologies</tspan>
-      <tspan dx="10">&#8212;</tspan>
-      <tspan dx="10">CS @ UVic</tspan>
-      <tspan dx="10">&#8212;</tspan>
-      <tspan dx="10">Vancouver, BC</tspan>
-      <tspan class="cursor" dx="10">&#9646;</tspan>
-    </text>
-
-    <!-- descent cue -->
-    <g class="sink">
-      <text class="meta" x="{cx:.0f}" y="{H - 40}" text-anchor="middle" fill="{BIO}" fill-opacity=".85">BEGIN DESCENT</text>
-      <path d="M{cx - 6:.0f} {H - 30} l6 6 l6 -6" fill="none" stroke="{BIO}" stroke-width="1.4"/>
+    <!-- land: also reflected in the lake below -->
+    <g id="land">
+      <g class="sunrise">
+        <circle class="corona" cx="{SX}" cy="{SY}" r="92" fill="url(#corona)"/>
+        <circle cx="{SX}" cy="{SY}" r="40" fill="url(#sun)"/>
+      </g>
+      <g class="in1">
+        <path d="{fill_under(L1, HZ + 160)}" fill="url(#g1)"/>
+        <path d="{fill_under(L1, HZ + 160)}" fill="url(#rim)"/>
+        <path d="{snow1}" fill="url(#snow)"/>
+        <path d="{shade1}" fill="url(#shade)"/>
+      </g>
+      <rect y="300" width="{W}" height="110" fill="url(#haze)" class="in1"/>
+      <g class="in2">
+        <path d="{fill_under(L2, HZ + 160)}" fill="url(#g2)"/>
+        <path d="{fill_under(L2, HZ + 160)}" fill="url(#rim)"/>
+        <path d="{snow2}" fill="url(#snow)" opacity=".8"/>
+        <path d="{shade2}" fill="url(#shade)" opacity=".8"/>
+      </g>
+      <rect y="350" width="{W}" height="90" fill="url(#haze)" opacity=".8" class="in2"/>
+      <g class="in3">
+        <path d="{fill_under(L3, HZ + 160)}" fill="url(#g3)"/>
+        <path d="{trees3}" fill="#5D5F88"/>
+        <path d="{fill_under(L3, HZ + 160)}" fill="url(#rim)" opacity=".55"/>
+      </g>
+      <g class="in4">{mist}</g>
+      <g class="in4">
+        <path d="{fill_under(L4, HZ + 160)}" fill="url(#g4)"/>
+        <path d="{trees4}" fill="#33465A"/>
+      </g>
+      <g class="in5">
+        <path d="{fill_under(L5, HZ + 160)}" fill="#1D2E36"/>
+        <path d="{trees5}" fill="#1D2E36"/>
+      </g>
     </g>
 
-    <!-- telemetry -->
-    <circle class="pulse" cx="{W - 46}" cy="{H - 34}" r="3.5" fill="{BIO}"/>
-    <text class="meta" x="{W - 60}" y="{H - 30}" text-anchor="end">SONAR ACTIVE &#183; 49.28&#176;N 123.12&#176;W &#183; SALISH SEA</text>
+    <!-- birds -->
+    <g class="flock2"><g transform="translate(0,236)">{flock2}</g></g>
+    <g class="flock"><g transform="translate(0,300)">{flock}</g></g>
 
-    <!-- overlays -->
-    <rect width="{W}" height="{H}" fill="url(#vignette)"/>
-    <rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="6" fill="none" stroke="url(#edge)"/>
+    <!-- lake -->
+    <rect y="{HZ}" width="{W}" height="{H0 - HZ}" fill="url(#lake)"/>
+    <g clip-path="url(#lakeclip)" mask="url(#rm)" opacity=".62">
+      <use xlink:href="#land" href="#land" transform="matrix(1 0 0 -1 0 {2 * HZ})"/>
+    </g>
+    <rect y="{HZ}" width="{W}" height="{H0 - HZ}" fill="url(#deep)"/>
+    <rect y="{HZ}" width="{W}" height="1.2" fill="url(#hzline)"/>
+    <g>{glints}</g>
+    <g>{ripples}</g>
+    {floaters}
+
+    <!-- near shore -->
+    <g class="in6">
+      <path d="{bank}" fill="#0B1613"/>
+      <path d="{rock}" fill="#0A1512"/>
+      <path d="{rock}" fill="none" stroke="#FFC890" stroke-opacity=".18" stroke-width="1"/>
+      <g fill="#070F0D">{hiker}</g>
+      <g>{reeds}</g>
+      <g fill="#12231F">{fg_back}</g>
+      <g fill="#070F0D">{fg_front}</g>
+    </g>
+
+    <g class="flare">{flare}</g>
+   </g>
+   <g>
+    <rect width="{W}" height="{H}" fill="url(#vig)"/>
+
+   </g>
+
+    {frame(W, H, 18, CREAM, ".18")}
   </g>
 </svg>
 """
 
 
-# ── 2. DEPTH ZONE MARKERS ────────────────────────────────────────────────────
-def zone(depth, name, layer, reading, note, idx):
-    """A thin strip between sections; each one darker than the last."""
-    W, H = 1000, 84
-    base = ["#071833", "#040E22", "#020815"][idx]
-    lx0, lx1, ly = 400, 740, 44
+# ═════════════════════════════════════════════════════════════════════════════
+# 2. CHAPTER I — THE OLD-GROWTH
+# ═════════════════════════════════════════════════════════════════════════════
+def chapter_forest():
+    rnd = random.Random(1040)
+    W, H = 1000, 230
 
-    ticks = "".join(
-        f'<line x1="{x}" y1="{ly - (5 if (x - lx0) % 68 == 0 else 2)}" x2="{x}" y2="{ly + (5 if (x - lx0) % 68 == 0 else 2)}"/>'
-        for x in range(lx0, lx1 + 1, 17)
-    )
+    F1 = ridge(rnd, -20, W + 20, 108, 8, [(700, 26, 260), (300, 14, 200)], iters=5)
+    F2 = ridge(rnd, -20, W + 20, 140, 7, [(520, 18, 240)], iters=5)
+    F3 = ridge(rnd, -20, W + 20, 178, 6, [], iters=5)
+    F4 = ridge(rnd, -20, W + 20, 236, 3, [], iters=4)
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{depth} metres, {name}">
-  <title>{depth} m &#183; {name}</title>
+    t1 = treeline(rnd, F1, 22, 40, 8, sink=6)
+    t2 = treeline(rnd, F2, 32, 60, 11, sink=6)
+    t3 = treeline(rnd, F3, 54, 96, 17, sink=8)
+    t4 = treeline(rnd, F4, 130, 210, 52, sink=8)
+    stems, blades = [], []
+    for x in [rnd.uniform(-10, W + 10) for _ in range(26)]:
+        for ang, curl in [(-150 + rnd.uniform(-12, 12), 70), (-30 + rnd.uniform(-12, 12), -70), (-95 + rnd.uniform(-10, 10), rnd.choice([-40, 40]))]:
+            st, bl = fern(rnd, x, H + 6, rnd.uniform(30, 52), ang, curl, rnd.uniform(5, 8))
+            stems.append(st)
+            blades.append(bl)
+    ferns = f'<path d="{"".join(blades)}" fill="#0A2016"/><path d="{"".join(stems)}" fill="none" stroke="#0A2016" stroke-width="1.2"/>'
+    under = smooth([(-20, 214), (120, 206), (260, 216), (420, 204), (600, 212), (780, 202), (920, 212), (1020, 206)]) + f" L{W + 20} {H + 5} L-20 {H + 5}Z"
+
+    beams = "".join(
+        f'<polygon class="beam" points="{x},-10 {x + w},-10 {x + w - 260},{H} {x - 260 - w * .6},{H}" '
+        f'style="animation-delay:-{rnd.uniform(0, 7):.1f}s"/>'
+        for x, w in [(560, 36), (650, 70), (760, 30), (830, 58), (930, 44), (1010, 64)])
+
+    fog = "".join(
+        f'<ellipse class="fog" cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="url(#fogg)" opacity="{op}" '
+        f'style="animation-duration:{d}s;animation-delay:-{rnd.uniform(0, d):.0f}s"/>'
+        for cx, cy, rx, ry, op, d in [(250, 132, 300, 18, .9, 40), (780, 128, 280, 16, .8, 48),
+                                      (520, 170, 320, 16, .7, 36), (900, 176, 220, 14, .6, 44), (120, 172, 200, 12, .6, 50)])
+
+    dust = motes(rnd, 30, 360, 980, 20, 210, "#FFF6DA", 1.3)
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Waypoint one, the old-growth: who I am">
+  <title>Waypoint 01 · The Old-Growth</title>
   <defs>
-    <linearGradient id="zbg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="{base}"/>
-      <stop offset="100%" stop-color="{ABYSS}"/>
+    <linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#EAF1DC"/>
+      <stop offset=".5"  stop-color="#B2D2BB"/>
+      <stop offset="1"   stop-color="#7AA693"/>
     </linearGradient>
-    <linearGradient id="zrule" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="{BIO}"  stop-opacity="0"/>
-      <stop offset="30%"  stop-color="{BIO}"  stop-opacity=".6"/>
-      <stop offset="70%"  stop-color="{VOLT}" stop-opacity=".5"/>
-      <stop offset="100%" stop-color="{VOLT}" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="zglow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <clipPath id="zf"><rect width="{W}" height="{H}" rx="4"/></clipPath>
-  </defs>
-  <style>
-    .d  {{ font-family:{MONO}; font-size:30px; font-weight:700; fill:{BIO}; }}
-    .u  {{ font-size:14px; font-weight:400; fill:{MUTE}; }}
-    .zn {{ font-family:{MONO}; font-size:14px; font-weight:700; letter-spacing:3.2px; fill:{FOAM}; }}
-    .zl {{ font-family:{MONO}; font-size:10px; letter-spacing:2.6px; fill:{MUTE}; }}
-    .rd {{ font-family:{MONO}; font-size:11.5px; letter-spacing:1.6px; fill:{FOAM}; fill-opacity:.8; }}
-    .nt {{ font-family:{MONO}; font-size:11px; font-style:italic; fill:{MUTE}; }}
-    .blip {{ animation:travel 4.8s cubic-bezier(.5,0,.5,1) infinite; }}
-    @keyframes travel {{ 0% {{transform:translateX(0);opacity:0}} 10%,90% {{opacity:1}} 100% {{transform:translateX({lx1 - lx0}px);opacity:0}} }}
-    .chev {{ animation:chev 2s ease-in-out infinite; }}
-    @keyframes chev {{ 0%,100% {{transform:translateY(-2px);opacity:.35}} 50% {{transform:translateY(3px);opacity:1}} }}
-    {snow_css(H)}
-    @media (prefers-reduced-motion: reduce) {{ .blip,.chev,.snow {{ animation:none; }} }}
-  </style>
-  <g clip-path="url(#zf)">
-    <rect width="{W}" height="{H}" fill="url(#zbg)"/>
-    {snow(16, W, rmax=1.3, opmax=.35)}
-    <rect width="{W}" height="1" fill="url(#zrule)"/>
-    <rect y="{H - 1}" width="{W}" height="1" fill="url(#zrule)" opacity=".5"/>
-
-    <g class="chev" fill="none" stroke="{BIO}" stroke-width="1.4">
-      <path d="M24 34 l6 6 l6 -6"/><path d="M24 42 l6 6 l6 -6" stroke-opacity=".5"/>
-    </g>
-    <text class="d" x="50" y="{H / 2 + 11:.0f}">{depth}<tspan class="u" dx="6">m</tspan></text>
-
-    <text class="zn" x="186" y="38">{name}</text>
-    <text class="zl" x="186" y="57">{layer}</text>
-
-    <line x1="{lx0}" y1="{ly}" x2="{lx1}" y2="{ly}" stroke="{LINE}" stroke-width="1"/>
-    <g stroke="{MUTE}" stroke-opacity=".6">{ticks}</g>
-    <g class="blip"><circle cx="{lx0}" cy="{ly}" r="3" fill="{BIO}" filter="url(#zglow)"/></g>
-
-    <text class="rd" x="{W - 28}" y="38" text-anchor="end">{reading}</text>
-    <text class="nt" x="{W - 28}" y="57" text-anchor="end">{note}</text>
-  </g>
-</svg>
-"""
-
-
-# ── 3. BEACON CARDS ──────────────────────────────────────────────────────────
-# Drawn on the same 18x18 grid, wireframe stroke, no filled brand marks, so the
-# trio stays in the same visual language as the rest of the dive.
-ICONS = {
-    "globe": '<circle cx="9" cy="9" r="8"/><ellipse cx="9" cy="9" rx="3.6" ry="8"/><path d="M1.4 6h15.2M1.4 12h15.2"/>',
-    "link":  '<path d="M7 11a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 1 0-5.7-5.7L8.2 4"/><path d="M11 7a4 4 0 0 0-5.7 0L2.7 9.6a4 4 0 1 0 5.7 5.7L9.8 14"/>',
-    "mail":  '<rect x="1" y="3" width="16" height="12" rx="1.5"/><path d="M1.6 4.2 9 10l7.4-5.8"/>',
-}
-
-
-def card(label, target, icon, channel, primary, idx):
-    """One beacon. Every card is the same 340x104 so the row tiles."""
-    W, H = 340, 104
-    ix, iy = 38, 52                         # icon centre
-    tx = 76                                 # text column
-
-    border_op = ".60" if primary else ".32"
-
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label} — {target}">
-  <title>{label} &#8212; {target}</title>
-  <defs>
-    <linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#061A3A"/>
-      <stop offset="100%" stop-color="{ABYSS}"/>
-    </linearGradient>
-    <radialGradient id="cwell" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="{BIO}" stop-opacity=".28"/>
-      <stop offset="100%" stop-color="{BIO}" stop-opacity="0"/>
+    <radialGradient id="fsun" cx="880" cy="-30" r="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFF4CF" stop-opacity=".95"/>
+      <stop offset="1"   stop-color="#FFF4CF" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="cedge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="{BIO}"  stop-opacity="{border_op}"/>
-      <stop offset="100%" stop-color="{VOLT}" stop-opacity="{border_op}"/>
+    <linearGradient id="beamg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#FFF8DD" stop-opacity=".42"/>
+      <stop offset="1"   stop-color="#FFF8DD" stop-opacity="0"/>
     </linearGradient>
-    <clipPath id="cf"><rect width="{W}" height="{H}" rx="6"/></clipPath>
+    <radialGradient id="fogg" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#F2F7EE" stop-opacity=".75"/>
+      <stop offset="1"   stop-color="#F2F7EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fscrim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#0B2119" stop-opacity=".92"/>
+      <stop offset=".32" stop-color="#0B2119" stop-opacity=".66"/>
+      <stop offset=".6"  stop-color="#0B2119" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="ff"><rect width="{W}" height="{H}" rx="16"/></clipPath>
   </defs>
   <style>
-    .lb {{ font-family:{MONO}; font-size:15px; font-weight:700; letter-spacing:2.6px; fill:{FOAM}; }}
-    .tg {{ font-family:{MONO}; font-size:10.5px; letter-spacing:.9px; fill:{MUTE}; }}
-    .ch {{ font-family:{MONO}; font-size:9.5px; letter-spacing:2.4px; fill:{MUTE}; }}
-    .ar {{ font-family:{MONO}; font-size:19px; font-weight:700; fill:{BIO}; animation:ar 2.6s ease-in-out infinite; }}
-    @keyframes ar {{ 0%,100% {{transform:translateX(0);opacity:.55}} 50% {{transform:translateX(4px);opacity:1}} }}
-    .dt {{ animation:dt 2.4s ease-in-out infinite; }}
-    @keyframes dt {{ 0%,100% {{opacity:.25}} 50% {{opacity:1}} }}
-    .ring {{ fill:none; stroke:{BIO}; stroke-width:1; vector-effect:non-scaling-stroke;
-             transform-origin:{ix}px {iy}px; animation:ring 3.6s ease-out infinite; }}
-    @keyframes ring {{ 0% {{transform:scale(.55);opacity:.8}} 100% {{transform:scale(2.2);opacity:0}} }}
-    {snow_css(H)}
-    @media (prefers-reduced-motion: reduce) {{
-      .ar,.dt,.ring,.snow {{ animation:none; }}
-      .ring {{ opacity:0 }}
-    }}
+    .beam {{ fill:url(#beamg); animation:beam 8s ease-in-out infinite; }}
+    @keyframes beam {{ 0%,100% {{ opacity:.3; }} 50% {{ opacity:1; }} }}
+    .fog  {{ animation:fog ease-in-out infinite alternate; }}
+    @keyframes fog {{ from {{ transform:translateX(-70px); }} to {{ transform:translateX(70px); }} }}
+    .sway {{ transform-box:fill-box; transform-origin:50% 100%; animation:sway 9s ease-in-out infinite alternate; }}
+    .fern {{ transform-box:fill-box; transform-origin:50% 100%; animation:fern 6s ease-in-out infinite alternate; }}
+    @keyframes fern {{ from {{ transform:skewX(-1.2deg); }} to {{ transform:skewX(1.2deg); }} }}
+    @keyframes sway {{ from {{ transform:rotate(-.5deg); }} to {{ transform:rotate(.5deg); }} }}
+    {MOTE_CSS}
+    .k  {{ font-family:{MONO}; font-size:11px; letter-spacing:3px; fill:{GOLD}; }}
+    .h  {{ font-family:{SERIF}; font-size:48px; fill:{CREAM}; letter-spacing:-.5px; }}
+    .s  {{ font-family:{SANS}; font-size:14px; letter-spacing:.4px; fill:{SAGE}; }}
+    .cue {{ animation:cue 2.4s ease-in-out infinite; }}
+    @keyframes cue {{ 0%,100% {{ transform:translateY(-2px); opacity:.45; }} 50% {{ transform:translateY(3px); opacity:1; }} }}
+    {reduced(".beam,.fog,.sway,.fern,.mote,.cue", ".mote { opacity:0; }")}
   </style>
+  <g clip-path="url(#ff)">
+    <rect width="{W}" height="{H}" fill="url(#fsky)"/>
+    <rect width="{W}" height="{H}" fill="url(#fsun)"/>
+    <g>{beams}</g>
+    <path d="{fill_under(F1, H + 5)}" fill="#A6C7B4"/><path d="{t1}" fill="#A6C7B4"/>
+    <g>{fog}</g>
+    <path d="{fill_under(F2, H + 5)}" fill="#78A28D"/><path d="{t2}" fill="#78A28D"/>
+    <rect y="120" width="{W}" height="70" fill="url(#fogg)" opacity=".35"/>
+    <path d="{fill_under(F3, H + 5)}" fill="#3E6D59"/><path d="{t3}" fill="#3E6D59"/>
+    <g fill="#163A2D" class="sway"><path d="{t4}"/></g>
+    <path d="{under}" fill="#10291F"/>
+    {dust}
+    <g class="fern">{ferns}</g>
+    <rect width="{W}" height="{H}" fill="url(#fscrim)"/>
 
-  <g clip-path="url(#cf)">
-    <rect width="{W}" height="{H}" fill="url(#cbg)"/>
-    {snow(10, W, rmax=1.2, opmax=.35)}
+    <text class="k" x="56" y="84">WAYPOINT 01  —  10:40</text>
+    <text class="h" x="54" y="138">The <tspan font-style="italic" fill="#CDE6C4">Old-Growth</tspan></text>
+    <text class="s" x="56" y="172">Elevation 420 m  ·  who I am</text>
+    <g class="cue"><path d="M262 163 l5 5 l5 -5" fill="none" stroke="{GOLD}" stroke-width="1.4" stroke-linecap="round"/></g>
 
-    <!-- channel tag -->
-    <text class="ch" x="{W - 32}" y="24" text-anchor="end">{channel}</text>
-    <circle class="dt" cx="{W - 20}" cy="20" r="3.2" fill="{BIO}" style="animation-delay:-{idx * .8:.1f}s"/>
-
-    <!-- beacon: icon with sonar rings going out from it -->
-    <circle cx="{ix}" cy="{iy}" r="30" fill="url(#cwell)"/>
-    <circle class="ring" cx="{ix}" cy="{iy}" r="20" style="animation-delay:-{idx * 1.2:.1f}s"/>
-    <circle class="ring" cx="{ix}" cy="{iy}" r="20" style="animation-delay:-{idx * 1.2 + 1.8:.1f}s"/>
-    <circle cx="{ix}" cy="{iy}" r="18" fill="{ABYSS}" stroke="{BIO}" stroke-opacity="{border_op}"/>
-    <g transform="translate({ix - 9},{iy - 9})" stroke="{BIO}" stroke-width="1.3" fill="none" stroke-linecap="round">{ICONS[icon]}</g>
-
-    <!-- label + target -->
-    <text class="lb" x="{tx}" y="{iy - 2}">{label}</text>
-    <text class="tg" x="{tx}" y="{iy + 16}">{target}</text>
-
-    <!-- enter arrow -->
-    <text class="ar" x="{W - 22}" y="{H / 2 + 13:.0f}" text-anchor="end">&#8250;</text>
-
-    <rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="6" fill="none" stroke="url(#cedge)"/>
+    {frame(W, H, 16, CREAM, ".14")}
   </g>
 </svg>
 """
 
 
-# ── 4. SONAR CONTACT DOSSIER ─────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════════
+# 3. FIELD NOTES — IDENTITY + TRAIL MAP
+# ═════════════════════════════════════════════════════════════════════════════
 def identity():
-    """The whoami block as a sonar contact report: code on the left, live scope on the right."""
-    STR = "#9CC8FF"   # string literal, pale tide blue
+    rnd = random.Random(2026)
+    W, H = 1000, 400
+    MX0, MY0, MX1, MY1 = 600, 30, 970, 370          # map panel
 
-    W = 1000
-    BAR = 36              # title bar height
-    X0, LEAD = 30, 25     # code gutter x, line height
-    KEY_X, VAL_X = 82, 178
-    y0 = BAR + 48
+    def blob(cx, cy, rx, ry, rot, harmonics, k, rings, shift):
+        """One contour ring: a noisy rotated ellipse; inner rings shrink toward a peak."""
+        s = 1 - .14 * k
+        ccx, ccy = cx + shift[0] * k / rings, cy + shift[1] * k / rings
+        cr, sr = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+        pts = []
+        for i in range(56):
+            th = 2 * math.pi * i / 56
+            m = 1 + sum(a * (1 - .05 * k) * math.sin(j * th + ph) for j, a, ph in harmonics)
+            ex, ey = rx * s * m * math.cos(th), ry * s * m * math.sin(th)
+            pts.append((ccx + ex * cr - ey * sr, ccy + ex * sr + ey * cr))
+        return pts
 
-    rows = [
-        ("open",),
-        ("pair", "role:",      "Software Developer @ STEMCELL Technologies"),
-        ("pair", "education:", "B.Sc. Computer Science, University of Victoria"),
-        ("pair", "based_in:",  "Vancouver, British Columbia"),
-        ("close",),
-        ("blank",),
-        ("note", "&#47;&#47; below 1000 m the only light is the light you make"),
-    ]
+    def land(cx, cy, rx, ry, rot, rings, shift, seed):
+        r2 = random.Random(seed)
+        harm = [(j, r2.uniform(.03, .09) / (j * .5), r2.uniform(0, 6.3)) for j in range(2, 7)]
+        return [blob(cx, cy, rx, ry, rot, harm, k, rings, shift) for k in range(rings)]
 
-    code, ln = [], 1
-    for i, row in enumerate(rows):
-        y = y0 + i * LEAD
-        code.append(f'<text class="gut" x="{X0}" y="{y}">{ln:02d}</text>')
-        ln += 1
-        t = f'<text class="cd" xml:space="preserve" y="{y}">'
-        if row[0] == "open":
-            t += '<tspan class="kw" x="64">const</tspan><tspan class="vr"> aditya</tspan><tspan class="op"> = {</tspan>'
-        elif row[0] == "pair":
-            t += (f'<tspan class="ky" x="{KEY_X}">{row[1]}</tspan>'
-                  f'<tspan class="op" x="{VAL_X}">&quot;</tspan>'
-                  f'<tspan class="st">{row[2]}</tspan>'
-                  f'<tspan class="op">&quot;,</tspan>')
-        elif row[0] == "close":
-            t += '<tspan class="op" x="64">};</tspan>'
-        elif row[0] == "note":
-            t += f'<tspan class="cm" x="64">{row[1]}</tspan>'
-        else:
-            t += '<tspan x="64"> </tspan>'
-        code.append(t + "</text>")
-    # caret parks on the blank line under the closing brace
-    code.append(f'<rect class="car" x="64" y="{y0 + 5 * LEAD - 11}" width="8.4" height="14"/>')
-    code = "\n  ".join(code)
+    isle = land(636, 196, 168, 64, 52, 6, (-30, -36), 7)        # Vancouver Island, running NW-SE
+    main = land(1046, 196, 206, 262, 20, 7, (40, -40), 11)      # the mainland and the Coast Mountains
 
-    H = y0 + (len(rows) - 1) * LEAD + 56
-    cx, cy, R = 735, (BAR + H) / 2 - 10, 60
+    def contours(rings, fill, peak):
+        out = [f'<path d="{smooth(rings[0], True)}" fill="{fill}" stroke="#5F8F70" stroke-opacity=".75" stroke-width="1.1"/>']
+        for k, r in enumerate(rings[1:], 1):
+            out.append(f'<path d="{smooth(r, True)}" fill="none" stroke="{FERN}" stroke-opacity="{.16 + .07 * k:.2f}" '
+                       f'stroke-width="{.8 if k % 3 else 1.2}"/>')
+        px = sum(p[0] for p in rings[-1]) / len(rings[-1])
+        py = sum(p[1] for p in rings[-1]) / len(rings[-1])
+        out.append(f'<path d="M{n(px - 4)} {n(py + 3)} l4 -7 l4 7z" fill="{GOLD}" fill-opacity=".7"/>'
+                   f'<text class="pk" x="{n(px + 8)}" y="{n(py + 3)}">{peak}</text>')
+        return "".join(out)
 
-    def pt(deg, r=R):
-        a = math.radians(deg)
-        return cx + r * math.sin(a), cy - r * math.cos(a)
+    def inside(pt, poly):
+        x, y, c = pt[0], pt[1], False
+        for (ax, ay), (bx, by) in zip(poly, poly[1:] + poly[:1]):
+            if (ay > y) != (by > y) and x < (bx - ax) * (y - ay) / (by - ay) + ax:
+                c = not c
+        return c
 
-    # sweep: leading edge points straight up at t=0 and turns clockwise; the
-    # trail behind it is a fan of thin wedges fading out
-    fan = []
-    for k in range(10):
-        a1, a2 = -(k + 1) * 5, -k * 5
-        (x1, y1), (x2, y2) = pt(a1), pt(a2)
-        fan.append(f'<path d="M{cx} {cy:.1f} L{x1:.1f} {y1:.1f} A{R} {R} 0 0 1 {x2:.1f} {y2:.1f}Z" '
-                   f'fill-opacity="{.38 * (1 - k / 10):.2f}"/>')
-    fan = "".join(fan)
-    ex, ey = pt(0)
+    def woods(rings, count):
+        """Little fir glyphs scattered across the lowlands, between the coast and the third contour."""
+        out, tries = [], 0
+        while len(out) < count and tries < 4000:
+            tries += 1
+            x, y = rnd.uniform(MX0, MX1), rnd.uniform(MY0, MY1)
+            if inside((x, y), rings[0]) and not inside((x, y), rings[2]):
+                s_ = rnd.uniform(.8, 1.3)
+                out.append(f"M{n(x)} {n(y - 5 * s_)} l{n(2.4 * s_)} {n(5 * s_)} h-{n(4.8 * s_)}z")
+        return "".join(out)
 
-    # contact on the scope; its flash is timed to the moment the sweep crosses it
-    bx, by = cx + 26, cy - 31
-    hit = math.degrees(math.atan2(bx - cx, cy - by)) / 360 * 100
+    forest_glyphs = woods(isle, 46) + woods(main, 70)
 
-    rings = "".join(
-        f'<circle cx="{cx}" cy="{cy:.1f}" r="{r}" fill="none" stroke="{BIO}" stroke-opacity="{op}"/>'
-        for r, op in ((R, .45), (R * 2 / 3, .2), (R / 3, .2))
-    )
+    # Victoria sits at the island's south-east tip; Vancouver on the mainland's west coast
+    vic = isle[0][0]
+    vic = (636 + (vic[0] - 636) * .9, 196 + (vic[1] - 196) * .9)
+    van = main[0][28]
+    van = (1046 + (van[0] - 1046) * .96, 196 + (van[1] - 196) * .96)
 
-    reads = [("SIGNAL", 0.93), ("LUMEN", 0.68), ("PRESSURE", 0.21)]
-    ro = []
-    for i, (lbl, frac) in enumerate(reads):
-        ry = cy - 22 + i * 26
-        ro.append(f'<text class="rd" x="828" y="{ry:.0f}">{lbl}</text>')
-        ro.append(f'<rect x="904" y="{ry - 8:.0f}" width="66" height="6" rx="3" fill="{ABYSS}" stroke="{LINE}"/>')
-        ro.append(f'<rect x="905" y="{ry - 7:.0f}" width="{64 * frac:.0f}" height="4" rx="2" fill="url(#ibar2)"/>')
-    ro = "\n  ".join(ro)
+    c1 = (vic[0] + 60, vic[1] - 10)
+    c2 = (van[0] - 40, van[1] + 70)
+    route = f"M{P(*vic)} C{P(*c1)} {P(*c2)} {P(*van)}"
 
-    alt = ("Aditya Padmarajan — Software Developer at STEMCELL Technologies; "
+    def bez(t):
+        u = 1 - t
+        return (u ** 3 * vic[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t ** 3 * van[0],
+                u ** 3 * vic[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t ** 3 * van[1])
+    L = sum(math.dist(bez(i / 200), bez((i + 1) / 200)) for i in range(200))
+
+    waves = "".join(
+        f'<path class="wv" d="M{n(x)} {n(y)} q4 -2.4 8 0 t8 0" style="animation-delay:-{rnd.uniform(0, 6):.1f}s"/>'
+        for x, y in [(rnd.uniform(MX0, MX1), rnd.uniform(MY0, MY1)) for _ in range(70)])
+
+    grid = "".join(f'<line x1="{x}" y1="{MY0}" x2="{x}" y2="{MY1}"/>' for x in range(MX0 + 74, MX1, 74)) + \
+           "".join(f'<line x1="{MX0}" y1="{y}" x2="{MX1}" y2="{y}"/>' for y in range(MY0 + 68, MY1, 68))
+
+    rows = [("CURRENT ROLE", "Software Developer", "STEMCELL Technologies"),
+            ("STUDIED", "B.Sc. Computer Science", "University of Victoria"),
+            ("BASECAMP", "Vancouver", "British Columbia")]
+    rowsvg = []
+    for i, (k, a, b) in enumerate(rows):
+        y = 196 + i * 50
+        rowsvg.append(f'<line x1="56" y1="{y - 26}" x2="546" y2="{y - 26}" stroke="{SAGE}" stroke-opacity=".16"/>'
+                      f'<text class="lbl" x="56" y="{y}">{k}</text>'
+                      f'<text class="val" x="190" y="{y}">{a}<tspan class="valb">  —  {b}</tspan></text>')
+    rowsvg.append(f'<line x1="56" y1="{196 + 3 * 50 - 26}" x2="546" y2="{196 + 3 * 50 - 26}" stroke="{SAGE}" stroke-opacity=".16"/>')
+    rowsvg = "".join(rowsvg)
+
+    alt = ("Field notes: Aditya Padmarajan — Software Developer at STEMCELL Technologies; "
            "B.Sc. Computer Science, University of Victoria; based in Vancouver, British Columbia")
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{alt}">
   <title>{alt}</title>
   <defs>
-    <linearGradient id="ipnl" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#061A3A"/>
-      <stop offset="62%"  stop-color="{PANEL}"/>
-      <stop offset="100%" stop-color="{ABYSS}"/>
+    <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#13302A"/>
+      <stop offset=".55" stop-color="#0C211C"/>
+      <stop offset="1"   stop-color="#081613"/>
     </linearGradient>
-    <linearGradient id="ibar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="#0A2248"/>
-      <stop offset="100%" stop-color="{PANEL}"/>
-    </linearGradient>
-    <linearGradient id="ibar2" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="{TIDE}"/>
-      <stop offset="100%" stop-color="{BIO}"/>
-    </linearGradient>
-    <radialGradient id="iscope" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="{TIDE}" stop-opacity=".16"/>
-      <stop offset="100%" stop-color="{ABYSS}" stop-opacity=".9"/>
+    <radialGradient id="pglow" cx="160" cy="40" r="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="{GOLD}" stop-opacity=".10"/>
+      <stop offset="1"   stop-color="{GOLD}" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="iedge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="{BIO}"  stop-opacity=".40"/>
-      <stop offset="100%" stop-color="{VOLT}" stop-opacity=".25"/>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#0F3236"/>
+      <stop offset="1"   stop-color="#0A2226"/>
     </linearGradient>
-    <clipPath id="iframe"><rect width="{W}" height="{H}" rx="6"/></clipPath>
-    <filter id="iglow" x="-200%" y="-200%" width="500%" height="500%">
-      <feGaussianBlur stdDeviation="2.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <linearGradient id="mapfade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#081613" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#081613" stop-opacity=".35"/>
+    </linearGradient>
+    <clipPath id="ic"><rect width="{W}" height="{H}" rx="16"/></clipPath>
+    <clipPath id="mc"><rect x="{MX0}" y="{MY0}" width="{MX1 - MX0}" height="{MY1 - MY0}" rx="12"/></clipPath>
+    <filter id="pinglow" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <style>
-    .cd {{ font-family:{MONO}; font-size:14px; letter-spacing:.2px; }}
-    .gut{{ font-family:{MONO}; font-size:11px; fill:{MUTE}; fill-opacity:.55; }}
-    .kw {{ fill:#B49BFF; }}
-    .vr {{ fill:{FOAM}; }}
-    .ky {{ fill:{BIO}; }}
-    .st {{ fill:{STR}; }}
-    .op {{ fill:{MUTE}; }}
-    .cm {{ fill:{MUTE}; fill-opacity:.75; font-style:italic; }}
-    .tab{{ font-family:{MONO}; font-size:12px; font-weight:700; letter-spacing:2.2px; fill:{FOAM}; fill-opacity:.9; }}
-    .meta{{font-family:{MONO}; font-size:10.5px; letter-spacing:2.4px; fill:{MUTE}; }}
-    .rd {{ font-family:{MONO}; font-size:10.5px; letter-spacing:2.2px; fill:{MUTE}; }}
-    .vk {{ font-family:{MONO}; font-size:10px; letter-spacing:3px; fill:{BIO}; fill-opacity:.85; }}
-    .car{{ fill:{BIO}; fill-opacity:.75; animation:icar 1.05s steps(1) infinite; }}
-    @keyframes icar {{ 0%,50% {{opacity:1}} 51%,100% {{opacity:0}} }}
-    .sweep {{ transform-origin:{cx}px {cy:.1f}px; animation:spin 4s linear infinite; }}
-    @keyframes spin {{ to {{transform:rotate(360deg)}} }}
-    .blip {{ animation:blip 4s linear infinite; }}
-    @keyframes blip {{ 0%,{hit:.1f}% {{opacity:.2}} {hit + .8:.1f}% {{opacity:1}} 70%,100% {{opacity:.2}} }}
-    .echo {{ fill:none; stroke:{BIO}; stroke-width:1; vector-effect:non-scaling-stroke;
-             transform-origin:{bx}px {by:.1f}px; animation:echo 4s ease-out infinite; }}
-    @keyframes echo {{
-      0%,{hit:.1f}% {{transform:scale(.3);opacity:0}}
-      {hit + .8:.1f}% {{transform:scale(.3);opacity:.9}}
-      {hit + 30:.1f}%,100% {{transform:scale(2.4);opacity:0}}
-    }}
-    .dot {{ animation:ipulse 2.2s ease-in-out infinite; }}
-    @keyframes ipulse {{ 0%,100% {{opacity:.25}} 50% {{opacity:1}} }}
-    {snow_css(H)}
-    @media (prefers-reduced-motion: reduce) {{
-      .car,.sweep,.blip,.echo,.dot,.snow {{ animation:none; }}
-      .echo {{ opacity:0 }}
-    }}
+    .eb  {{ font-family:{MONO}; font-size:11px; letter-spacing:3px; fill:{GOLD}; }}
+    .hi  {{ font-family:{SERIF}; font-size:50px; fill:{CREAM}; letter-spacing:-.5px; }}
+    .lbl {{ font-family:{SANS}; font-size:10px; font-weight:600; letter-spacing:2.2px; fill:{FERN}; fill-opacity:.85; }}
+    .val {{ font-family:{SERIF}; font-size:18.5px; fill:{CREAM}; }}
+    .valb{{ fill:{SAGE}; font-style:italic; }}
+    .qt  {{ font-family:{SERIF}; font-size:16px; font-style:italic; fill:{SAGE}; }}
+    .mt  {{ font-family:{MONO}; font-size:9.5px; letter-spacing:2.2px; fill:{SAGE}; fill-opacity:.7; }}
+    .pk  {{ font-family:{MONO}; font-size:8.5px; letter-spacing:1px; fill:{GOLD}; fill-opacity:.75; }}
+    .pl  {{ font-family:{MONO}; font-size:10px; font-weight:700; letter-spacing:2.2px; fill:{CREAM}; }}
+    .ps  {{ font-family:{MONO}; font-size:9px; letter-spacing:1.2px; fill:{SAGE}; }}
+    .sea {{ font-family:{SERIF}; font-size:13px; font-style:italic; letter-spacing:3px; fill:#7FB7B4; fill-opacity:.7; }}
+    .wv  {{ fill:none; stroke:#5FA3A0; stroke-opacity:.35; stroke-width:.8; animation:wv 6s ease-in-out infinite alternate; }}
+    @keyframes wv {{ from {{ transform:translateX(-4px); }} to {{ transform:translateX(4px); }} }}
+    .rt  {{ fill:none; stroke:{GOLD}; stroke-width:2; stroke-linecap:round; stroke-dasharray:{L:.0f} {L:.0f};
+            animation:draw 7s {EASE} infinite; }}
+    @keyframes draw {{ 0% {{ stroke-dashoffset:{L:.0f}; opacity:1; }} 60% {{ stroke-dashoffset:0; opacity:1; }} 88% {{ stroke-dashoffset:0; opacity:0; }} 100% {{ stroke-dashoffset:{L:.0f}; opacity:0; }} }}
+    .ring {{ fill:none; stroke:{GOLD}; transform-box:fill-box; transform-origin:center; animation:ring 2.8s ease-out infinite; }}
+    @keyframes ring {{ from {{ transform:scale(.4); opacity:.9; }} to {{ transform:scale(2.6); opacity:0; }} }}
+    .car {{ fill:{GOLD}; animation:blink 1.1s steps(1) infinite; }}
+    @keyframes blink {{ 0%,50% {{ opacity:1; }} 51%,100% {{ opacity:0; }} }}
+    {reduced(".wv,.rt,.ring,.car", ".ring { opacity:0; } .rt { stroke-dashoffset:0; }")}
   </style>
 
-  <g clip-path="url(#iframe)">
-    <rect width="{W}" height="{H}" fill="url(#ipnl)"/>
-    {snow(34, W, rmax=1.4, opmax=.32)}
+  <g clip-path="url(#ic)">
+    <rect width="{W}" height="{H}" fill="url(#pg)"/>
+    <rect width="{W}" height="{H}" fill="url(#pglow)"/>
 
-    <!-- title bar -->
-    <rect width="{W}" height="{BAR}" fill="url(#ibar)"/>
-    <rect x="0" y="{BAR - 1}" width="{W}" height="1" fill="{LINE}"/>
-    <circle cx="26" cy="{BAR / 2:.0f}" r="3.6" fill="{BIO}" class="dot"/>
-    <text class="tab" x="42" y="{BAR / 2 + 4:.0f}">IDENTITY.TS</text>
-    <text class="meta" x="{W - 30}" y="{BAR / 2 + 4:.0f}" text-anchor="end">DIVE LOG 001 &#183; CONTACT ACQUIRED</text>
+    <!-- notes -->
+    <text class="eb" x="56" y="66">FIELD NOTES  —  Nº 001</text>
+    <text class="hi" x="54" y="124">Hi, I'm <tspan font-style="italic" fill="#FFD9A0">Aditya</tspan>.</text>
+    {rowsvg}
+    <text class="qt" x="56" y="{H - 44}">“Solitude in Silence.”</text>
+    <rect class="car" x="56" y="{H - 30}" width="9" height="2"/>
 
-    <!-- code -->
-    <rect x="0" y="{BAR}" width="3" height="{H - BAR}" fill="{BIO}" fill-opacity=".7"/>
-    {code}
+    <!-- trail map -->
+    <g clip-path="url(#mc)">
+      <rect x="{MX0}" y="{MY0}" width="{MX1 - MX0}" height="{MY1 - MY0}" fill="url(#sea)"/>
+      <g>{waves}</g>
+      {contours(isle, "#173A2E", "1,603")}
+      {contours(main, "#173A2E", "2,678")}
+      <path d="{forest_glyphs}" fill="#5E9C72" fill-opacity=".5"/>
+      <g stroke="{SAGE}" stroke-opacity=".08">{grid}</g>
+      <text class="sea" transform="translate(760 190) rotate(-56)" text-anchor="middle">Salish Sea</text>
 
-    <!-- divider -->
-    <line x1="630" y1="{BAR + 22}" x2="630" y2="{H - 22}" stroke="{LINE}" stroke-width="1"/>
+      <path d="{route}" fill="none" stroke="{GOLD}" stroke-opacity=".35" stroke-width="1.4" stroke-dasharray="2 5" stroke-linecap="round"/>
+      <path class="rt" d="{route}"/>
+      <circle r="3.4" fill="{CREAM}" filter="url(#pinglow)">
+        <animateMotion dur="7s" repeatCount="indefinite" path="{route}" keyPoints="0;1;1" keyTimes="0;.6;1" calcMode="spline" keySplines=".16 1 .3 1;0 0 1 1"/>
+        <animate attributeName="opacity" dur="7s" repeatCount="indefinite" values="1;1;0;0" keyTimes="0;.6;.88;1"/>
+      </circle>
 
-    <!-- sonar scope -->
-    <circle cx="{cx}" cy="{cy:.1f}" r="{R}" fill="url(#iscope)"/>
-    {rings}
-    <path d="M{cx - R} {cy:.1f} h{2 * R} M{cx} {cy - R:.1f} v{2 * R}" stroke="{BIO}" stroke-opacity=".15"/>
-    <g class="sweep">
-      <g fill="{BIO}">{fan}</g>
-      <line x1="{cx}" y1="{cy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" stroke="{BIO}" stroke-width="1.4"/>
+      <!-- pins -->
+      <circle cx="{n(vic[0])}" cy="{n(vic[1])}" r="4.5" fill="#0A2226" stroke="{SAGE}" stroke-width="1.4"/>
+      <circle cx="{n(vic[0])}" cy="{n(vic[1])}" r="1.6" fill="{SAGE}"/>
+      <rect x="{n(vic[0] - 128)}" y="{n(vic[1] - 52)}" width="114" height="34" rx="5" fill="#081613" fill-opacity=".72" stroke="{SAGE}" stroke-opacity=".2"/>
+      <text class="pl" x="{n(vic[0] - 118)}" y="{n(vic[1] - 37)}" fill="{SAGE}">VICTORIA</text>
+      <text class="ps" x="{n(vic[0] - 118)}" y="{n(vic[1] - 24)}">UVic · B.Sc. CS</text>
+
+      <circle class="ring" cx="{n(van[0])}" cy="{n(van[1])}" r="7"/>
+      <circle class="ring" cx="{n(van[0])}" cy="{n(van[1])}" r="7" style="animation-delay:-1.4s"/>
+      <circle cx="{n(van[0])}" cy="{n(van[1])}" r="5" fill="{GOLD}" filter="url(#pinglow)"/>
+      <rect x="{n(van[0] - 126)}" y="{n(van[1] - 40)}" width="112" height="34" rx="5" fill="#081613" fill-opacity=".72" stroke="{GOLD}" stroke-opacity=".3"/>
+      <text class="pl" x="{n(van[0] - 116)}" y="{n(van[1] - 25)}">VANCOUVER</text>
+      <text class="ps" x="{n(van[0] - 116)}" y="{n(van[1] - 12)}">STEMCELL · now</text>
+
+      <!-- compass + scale -->
+      <g transform="translate({MX1 - 340} {MY0 + 40})">
+        <circle r="15" fill="none" stroke="{SAGE}" stroke-opacity=".3"/>
+        <path d="M0 -12 l4 12 l-4 -3 l-4 3z" fill="{GOLD}"/>
+        <path d="M0 12 l4 -12 l-4 3 l-4 -3z" fill="{SAGE}" fill-opacity=".35"/>
+        <text class="mt" y="-20" text-anchor="middle" fill="{GOLD}" fill-opacity=".9">N</text>
+      </g>
+      <g transform="translate({MX0 + 24} {MY1 - 22})">
+        <path d="M0 0 h80 M0 -4 v8 M40 -3 v6 M80 -4 v8" stroke="{SAGE}" stroke-opacity=".6"/>
+        <rect width="40" height="3" y="-1.5" fill="{SAGE}" fill-opacity=".5"/>
+        <text class="mt" x="90" y="3.5">25 km</text>
+      </g>
+      <rect x="{MX0}" y="{MY0}" width="{MX1 - MX0}" height="{MY1 - MY0}" fill="url(#mapfade)"/>
     </g>
-    <circle class="echo" cx="{bx}" cy="{by:.1f}" r="8"/>
-    <circle class="blip" cx="{bx}" cy="{by:.1f}" r="3.2" fill="{BIO}" filter="url(#iglow)"/>
-    <circle cx="{cx}" cy="{cy:.1f}" r="2" fill="{FOAM}"/>
-    <text class="vk" x="{cx}" y="{cy + R + 22:.0f}" text-anchor="middle">CONTACT 01 &#183; 040&#176;</text>
+    <rect x="{MX0 + .5}" y="{MY0 + .5}" width="{MX1 - MX0 - 1}" height="{MY1 - MY0 - 1}" rx="12" fill="none" stroke="{SAGE}" stroke-opacity=".22"/>
+    <text class="mt" x="{MX1 - 14}" y="{MY0 + 22}" text-anchor="end">TRAIL MAP · VICTORIA → VANCOUVER</text>
 
-    <!-- readouts -->
-    <text class="vk" x="828" y="{cy - 46:.0f}" fill="{VOLT}">TELEMETRY</text>
-    {ro}
-    <text class="meta" x="828" y="{cy + R + 22:.0f}">IDENTIFIED</text>
-
-    <!-- footer -->
-    <text class="meta" x="64" y="{H - 16}">49.28&#176;N 123.12&#176;W &#183; SALISH SEA</text>
-    <text class="meta" x="{W - 30}" y="{H - 16}" text-anchor="end">DEPTH 0200 m &#183; HOLDING</text>
-
-    <rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="6" fill="none" stroke="url(#iedge)"/>
+    {frame(W, H, 16, CREAM, ".12")}
   </g>
 </svg>
 """
 
 
-# ── 5. THE FLOOR ─────────────────────────────────────────────────────────────
-def floor():
-    """Bottom of the dive: an anglerfish, a vent, a few things watching you in the dark."""
-    W, H = 1000, 240
-    tx = 610   # text column centre
+# ═════════════════════════════════════════════════════════════════════════════
+# 4. CHAPTER II — THE RIVER
+# ═════════════════════════════════════════════════════════════════════════════
+def chapter_river():
+    rnd = random.Random(1520)
+    W, H, RY = 1000, 240, 172            # RY: waterline
 
-    # pairs of eyes that open, hold, and close at random
-    eyes = []
-    for x, y in [(70, 44), (488, 30), (930, 56), (820, 118), (150, 196), (980, 160), (420, 80)]:
-        c = random.choice([BIO, VOLT])
-        eyes.append(
-            f'<g class="eye" style="animation-delay:-{random.uniform(0, 11):.1f}s">'
-            f'<circle cx="{x}" cy="{y}" r="1.4" fill="{c}"/><circle cx="{x + 5}" cy="{y}" r="1.4" fill="{c}"/></g>'
-        )
-    eyes = "\n    ".join(eyes)
+    R1 = ridge(rnd, -20, W + 20, 132, 8, [(160, 70, 220), (360, 92, 200), (560, 50, 170)], iters=6)
+    R2 = ridge(rnd, -20, W + 20, 154, 5, [(250, 14, 220), (640, 10, 200)], iters=5)
+    R3 = ridge(rnd, -20, W + 20, RY + 2, 2, [], iters=4)
+    snow = snowcap(rnd, R1, 82, (6, 20))
 
-    # teeth along the upper and lower jaw lines
-    upper = "".join(f"M{x} {128 - (x - 346) * 6 / 26:.1f} l1.5 3.5 l1.5 -3.5 " for x in (350, 355, 360, 365))
-    lower = "".join(f"M{x} {128 + (x - 346) * 8 / 26:.1f} l1.5 -3.5 l1.5 3.5 " for x in (350, 355, 360, 365))
+    def calm(x):                         # keep the trees low under the headline
+        return .5 if x > 640 else 1
+    t2 = treeline(rnd, R2, 10, 22, 6, sink=3, hscale=calm)
+    t3 = treeline(rnd, R3, 22, 58, 8, sink=3, hscale=lambda x: .55 if x > 640 else 1)
 
-    seabed = ("M0 206 C120 188 220 202 340 194 C470 184 560 206 700 198 "
-              f"C820 191 900 204 {W} 192 L{W} {H} L0 {H}Z")
+    streaks = "".join(
+        f'<rect class="st" x="{n(rnd.uniform(-160, W))}" y="{n(y)}" width="{n(rnd.uniform(18, 60) * (1 + (y - RY) / 40))}" '
+        f'height="{n(.7 + (y - RY) / 70)}" rx=".6" fill-opacity="{rnd.uniform(.15, .45):.2f}" '
+        f'style="animation-duration:{18 - (y - RY) / 6 + rnd.uniform(-2, 2):.1f}s;animation-delay:-{rnd.uniform(0, 20):.1f}s"/>'
+        for y in [rnd.uniform(RY + 4, H - 2) for _ in range(46)])
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="10,935 metres, Challenger Deep. You've reached the bottom. Click to resurface.">
-  <title>10,935 m &#183; you've reached the bottom</title>
+    rocks = []
+    for x, y, rx in [(300, 212, 18), (334, 218, 10), (520, 200, 12)]:
+        rocks.append(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{rx * .42:.1f}" fill="#3B4C45"/><ellipse cx="{x - rx * .25:.1f}" cy="{y - rx * .15:.1f}" rx="{rx * .5:.1f}" ry="{rx * .16:.1f}" fill="#6E8379" fill-opacity=".7"/>'
+                     f'<path d="M{x - rx * 1.1:.1f} {y + 1} q{rx * .4:.1f} -{rx * .5:.1f} {rx * .9:.1f} -{rx * .45:.1f}" fill="none" stroke="#FFF6E2" stroke-opacity=".7" stroke-width="1.1" stroke-linecap="round"/>'
+                     f'<ellipse class="foam" cx="{x}" cy="{y + 2}" rx="{rx * 1.4:.1f}" ry="{rx * .45:.1f}" style="animation-delay:-{rnd.uniform(0, 3):.1f}s"/>')
+    rocks = "".join(rocks)
+
+    jump = "M600 214 Q640 132 690 210"
+    glitter = "".join(
+        f'<rect class="gl" x="{n(230 - w / 2 + rnd.uniform(-10, 10))}" y="{n(RY + 4 + i * 4.6)}" width="{n(w)}" height="1.2" rx=".6" '
+        f'style="animation-delay:-{rnd.uniform(0, 2.4):.2f}s;animation-duration:{rnd.uniform(1.4, 2.8):.2f}s"/>'
+        for i, w in enumerate([46, 40, 52, 34, 44, 30, 36, 24, 30, 18, 22, 14, 16, 10]))
+    fish = "M-11 0 C-6 -4 4 -5 9 -1 L13 -4 L12 0 L13 4 L9 1 C4 5 -6 4 -11 0Z"
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Waypoint two, the river: say hello">
+  <title>Waypoint 02 · The River</title>
   <defs>
-    <linearGradient id="fbg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="{DEEP}"/>
-      <stop offset="100%" stop-color="{ABYSS}"/>
+    <linearGradient id="rsky" x1="0" y1="0" x2="0" y2="{RY}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#F6D29E"/>
+      <stop offset=".5"  stop-color="#F3CFA3"/>
+      <stop offset="1"   stop-color="#D5DCC4"/>
     </linearGradient>
-    <radialGradient id="lure" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="{BIO}" stop-opacity=".30"/>
-      <stop offset="45%"  stop-color="{BIO}" stop-opacity=".08"/>
-      <stop offset="100%" stop-color="{BIO}" stop-opacity="0"/>
+    <radialGradient id="rsun" cx="230" cy="70" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFF3D2"/>
+      <stop offset=".2"  stop-color="#FFE3AE" stop-opacity=".6"/>
+      <stop offset="1"   stop-color="#FFE3AE" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="vent" cx="50%" cy="100%" r="80%">
-      <stop offset="0%"   stop-color="{VOLT}" stop-opacity=".35"/>
-      <stop offset="100%" stop-color="{VOLT}" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="fglow" x="-200%" y="-200%" width="500%" height="500%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <clipPath id="ff"><rect width="{W}" height="{H}" rx="6"/></clipPath>
+    <linearGradient id="m1" x1="0" y1="40" x2="0" y2="{RY}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9FAFC2"/><stop offset="1" stop-color="#CFCDC2"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="{RY}" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#E8CFA2"/>
+      <stop offset=".35" stop-color="#7FA79C"/>
+      <stop offset="1"   stop-color="#244A4A"/>
+    </linearGradient>
+    <linearGradient id="rdeep" x1="0" y1="{RY}" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#173434" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#173434" stop-opacity=".6"/>
+    </linearGradient>
+    <linearGradient id="salmon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C2533F"/><stop offset="1" stop-color="#F08B6A"/>
+    </linearGradient>
+    {ripple_mask("rrm", H, W, RY, 4, 2.8)}
+    <clipPath id="rclip"><rect y="{RY}" width="{W}" height="{H - RY}"/></clipPath>
+    <clipPath id="rf"><rect width="{W}" height="{H}" rx="16"/></clipPath>
   </defs>
   <style>
-    .big {{ font-family:{MONO}; font-size:40px; font-weight:700; letter-spacing:4px; fill:{BIO}; }}
-    .zn  {{ font-family:{MONO}; font-size:12px; font-weight:700; letter-spacing:4px; fill:{FOAM}; }}
-    .nt  {{ font-family:{MONO}; font-size:12px; font-style:italic; fill:{MUTE}; }}
-    .up  {{ font-family:{MONO}; font-size:10.5px; letter-spacing:3px; fill:{BIO}; }}
-    .eye {{ animation:eye 11s ease-in-out infinite; }}
-    @keyframes eye {{ 0%,62%,100% {{opacity:0}} 66%,80% {{opacity:.9}} 81% {{opacity:0}} 82%,86% {{opacity:.9}} }}
-    .fish {{ animation:swim 10s ease-in-out infinite; }}
-    @keyframes swim {{ 0%,100% {{transform:translate(0,0)}} 50% {{transform:translate(14px,-6px)}} }}
-    .rod {{ transform-origin:322px 90px; animation:bob 3.6s ease-in-out infinite alternate; }}
-    @keyframes bob {{ from {{transform:rotate(-4deg)}} to {{transform:rotate(5deg)}} }}
-    .halo {{ animation:halo 3.6s ease-in-out infinite; }}
-    @keyframes halo {{ 0%,100% {{opacity:.7}} 50% {{opacity:1}} }}
-    .rise {{ animation:upcue 2.2s ease-in-out infinite; }}
-    @keyframes upcue {{ 0%,100% {{transform:translateY(0);opacity:.55}} 50% {{transform:translateY(-4px);opacity:1}} }}
-    {snow_css(H)}
-    {bubble_css(150)}
-    @media (prefers-reduced-motion: reduce) {{
-      .eye,.fish,.rod,.halo,.rise,.snow,.bub {{ animation:none; }}
-      .eye {{ opacity:.6 }} .bub {{ opacity:0 }}
-    }}
+    .st   {{ fill:#FFF6E2; animation:flow linear infinite; }}
+    @keyframes flow {{ from {{ transform:translateX(0); }} to {{ transform:translateX(1160px); }} }}
+    .gl   {{ fill:#FFF3D0; animation:gl ease-in-out infinite; }}
+    @keyframes gl {{ 0%,100% {{ opacity:.1; }} 50% {{ opacity:.9; }} }}
+    .foam {{ fill:none; stroke:#FFF6E2; stroke-width:.9; transform-box:fill-box; transform-origin:center; animation:foam 3s ease-out infinite; }}
+    @keyframes foam {{ from {{ transform:scale(.7); opacity:.8; }} to {{ transform:scale(1.5); opacity:0; }} }}
+    .splash {{ fill:none; stroke:#FFF6E2; stroke-width:1; transform-box:fill-box; transform-origin:center; opacity:0; }}
+    .s1 {{ animation:sp1 7s ease-out infinite; }}
+    .s2 {{ animation:sp2 7s ease-out infinite; }}
+    @keyframes sp1 {{ 0%,54% {{ transform:scale(.3); opacity:0; }} 55% {{ opacity:.9; }} 70%,100% {{ transform:scale(2.2); opacity:0; }} }}
+    @keyframes sp2 {{ 0%,74% {{ transform:scale(.3); opacity:0; }} 75% {{ opacity:.9; }} 90%,100% {{ transform:scale(2.4); opacity:0; }} }}
+    .gull {{ fill:none; stroke:#5A4A3A; stroke-width:1.3; stroke-linecap:round; animation:glide 36s linear infinite; }}
+    @keyframes glide {{ from {{ transform:translate(-60px,0); }} to {{ transform:translate({W + 80}px,-24px); }} }}
+    .k  {{ font-family:{MONO}; font-size:11px; letter-spacing:3px; fill:#9A5A2C; }}
+    .h  {{ font-family:{SERIF}; font-size:48px; fill:#183A30; letter-spacing:-.5px; }}
+    .s  {{ font-family:{SANS}; font-size:14px; letter-spacing:.4px; fill:#3C5A4C; }}
+    .cue {{ animation:cue 2.4s ease-in-out infinite; }}
+    @keyframes cue {{ 0%,100% {{ transform:translateY(-2px); opacity:.45; }} 50% {{ transform:translateY(3px); opacity:1; }} }}
+    {reduced(".st,.gl,.foam,.s1,.s2,.gull,.cue,pattern", ".gull,.salmon { opacity:0; }")}
   </style>
-
-  <g clip-path="url(#ff)">
-    <rect width="{W}" height="{H}" fill="url(#fbg)"/>
-    {snow(40, W, rmax=1.3, opmax=.3)}
-    {eyes}
-
-    <!-- hydrothermal vent -->
-    <ellipse cx="878" cy="190" rx="70" ry="60" fill="url(#vent)"/>
-    {bubbles(9, 870, 886, 160, rmax=2.6)}
-    <path d="M862 196 L870 160 L886 160 L896 194Z" fill="#050F24" stroke="{LINE}"/>
-
-    <!-- seabed -->
-    <path d="{seabed}" fill="#020815" stroke="{LINE}"/>
-
-    <!-- anglerfish -->
-    <g class="fish">
-      <circle class="halo" cx="374" cy="66" r="90" fill="url(#lure)"/>
-      <path d="M244 126 L212 102 C218 118 218 136 212 152Z" fill="#06132B" stroke="#1C3C6E"/>
-      <path d="M244 126 C244 98 286 82 326 90 C350 96 366 110 372 122 L346 128 L372 136 C364 154 336 166 300 164 C266 162 244 150 244 126Z"
-            fill="#06132B" stroke="#1C3C6E" stroke-width="1.2"/>
-      <path d="M290 140 C300 150 300 158 286 160 C284 152 284 146 290 140Z" fill="#081A38" stroke="#1C3C6E"/>
-      <path d="{upper}{lower}" fill="none" stroke="{FOAM}" stroke-opacity=".75" stroke-width=".9"/>
-      <circle cx="338" cy="110" r="3.4" fill="{ABYSS}" stroke="{BIO}" stroke-opacity=".6"/>
-      <circle cx="337" cy="109" r="1" fill="{FOAM}"/>
-      <g class="rod">
-        <path d="M322 90 C326 64 350 52 372 62" fill="none" stroke="#2A4F86" stroke-width="1.4"/>
-        <circle cx="374" cy="66" r="4.5" fill="{BIO}" filter="url(#fglow)"/>
-      </g>
+  <g clip-path="url(#rf)">
+    <rect width="{W}" height="{RY + 2}" fill="url(#rsky)"/>
+    <rect width="{W}" height="{RY + 2}" fill="url(#rsun)"/>
+    <g id="bank">
+      <path d="{fill_under(R1, RY + 40)}" fill="url(#m1)"/>
+      <path d="{snow}" fill="#FFF8EE" fill-opacity=".85"/>
+      <path d="{fill_under(R2, RY + 40)}" fill="#7C9A84"/><path d="{t2}" fill="#7C9A84"/>
+      <path d="{fill_under(R3, RY + 40)}" fill="#2E4C3E"/><path d="{t3}" fill="#2E4C3E"/>
     </g>
+    <g class="gull"><g transform="translate(0,64)">{bird(0, 0, 1, 1.1, 0)}{bird(-18, 7, .8, 1.2, .4)}</g></g>
+
+    <rect y="{RY}" width="{W}" height="{H - RY}" fill="url(#water)"/>
+    <g clip-path="url(#rclip)" mask="url(#rrm)" opacity=".55">
+      <use xlink:href="#bank" href="#bank" transform="matrix(1 0 0 -1 0 {2 * RY})"/>
+    </g>
+    <rect y="{RY}" width="{W}" height="{H - RY}" fill="url(#rdeep)"/>
+    <g>{glitter}</g>
+    <g>{streaks}</g>
+    {rocks}
+
+    <!-- a salmon running upstream -->
+    <path class="salmon" d="{fish}" fill="url(#salmon)" opacity="0">
+      <animateMotion dur="7s" repeatCount="indefinite" path="{jump}" rotate="auto" keyPoints="0;0;1;1" keyTimes="0;.55;.75;1" calcMode="linear"/>
+      <animate attributeName="opacity" dur="7s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;.55;.56;.74;.75;1"/>
+    </path>
+    <ellipse class="splash s1" cx="600" cy="214" rx="8" ry="2.5"/>
+    <ellipse class="splash s2" cx="690" cy="210" rx="8" ry="2.5"/>
+
+    <text class="k" x="{W - 56}" y="50" text-anchor="end">WAYPOINT 02  —  15:20</text>
+    <text class="h" x="{W - 54}" y="100" text-anchor="end">The <tspan font-style="italic" fill="#9A4E2A">River</tspan></text>
+    <text class="s" x="{W - 74}" y="128" text-anchor="end">Elevation 120 m  ·  say hello</text>
+    <g class="cue"><path d="M{W - 66} 119 l5 5 l5 -5" fill="none" stroke="#9A5A2C" stroke-width="1.4" stroke-linecap="round"/></g>
+
+    {frame(W, H, 16, "#3C2A1A", ".18")}
+  </g>
+</svg>
+"""
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 5. TRAIL CARDS
+# ═════════════════════════════════════════════════════════════════════════════
+def card(kind, label, target, trail, dist, idx):
+    rnd = random.Random(300 + idx)
+    W, H = 340, 128
+
+    if kind == "summit":
+        bg = ("#2B2A4C", "#4A3A5E", "#B9746A")
+        peak = f"M150 {H} L222 70 L246 84 L272 40 L300 66 L318 58 L360 {H}Z"
+        cap = "M272 40 L262 58 L268 55 L274 62 L281 54 L289 60 L300 66 Z"
+        scene = f"""
+    <circle class="sunp" cx="300" cy="46" r="34" fill="url(#glow{idx})"/>
+    <circle cx="300" cy="46" r="13" fill="#FFE2AE"/>
+    <path d="M110 {H} L190 86 L214 98 L250 80 L300 104 L360 92 L360 {H}Z" fill="#6A5478" fill-opacity=".7"/>
+    <path d="{peak}" fill="#2C2840"/>
+    <path d="{cap}" fill="#F7E5EA"/>
+    <path d="M272 40 v-16" stroke="#FFF4E2" stroke-width="1"/>
+    <path fill="{EMBER}"><animate attributeName="d" dur="1.2s" repeatCount="indefinite"
+      values="M272 24 q5 1 10 0 q-1 3 0 6 q-5 1 -10 0z;M272 24 q5 -2 10 1 q-1 3 0 6 q-5 -2 -10 -1z;M272 24 q5 1 10 0 q-1 3 0 6 q-5 1 -10 0z"/></path>
+    {motes(rnd, 8, 190, 340, 20, 110, "#FFE2AE", 1.1)}"""
+    elif kind == "forest":
+        bg = ("#1C4636", "#123228", "#0B1F18")
+        def stand(spec):
+            return "".join(f'<g class="sw" style="animation-delay:-{rnd.uniform(0, 5):.1f}s"><path d="{fir(rnd, x, H + 4, h, .34)}"/></g>'
+                           for x, h in spec)
+        back = stand([(196, 58), (222, 74), (250, 66), (276, 82), (304, 70), (330, 86), (356, 64)])
+        front = stand([(214, 92), (246, 118), (292, 132), (326, 104), (352, 124)])
+        scene = f"""
+    <circle cx="282" cy="48" r="70" fill="url(#glow{idx})"/>
+    <g fill="#3F7D5E">{back}</g>
+    <ellipse class="fogc" cx="270" cy="104" rx="130" ry="12" fill="url(#glow{idx})"/>
+    <g fill="#0A1E16">{front}</g>
+    {motes(rnd, 12, 190, 340, 30, 120, "#D9FF9E", 1.3)}"""
+    else:  # river
+        bg = ("#14404A", "#0E2E36", "#081C22")
+        waves = "".join(
+            f'<path class="wave" d="M160 {y} ' + " ".join(f"q10 -{a} 20 0 t20 0" for _ in range(12)) +
+            f'" stroke-opacity="{op}" style="animation-duration:{d}s"/>'
+            for y, a, op, d in [(78, 2.4, .25, 5), (92, 3, .35, 4.2), (106, 3.6, .5, 3.4), (120, 4.2, .65, 2.8)])
+        scene = f"""
+    <circle cx="300" cy="36" r="30" fill="url(#glow{idx})"/>
+    <g fill="none" stroke="#9FE0D8" stroke-width="1.3" stroke-linecap="round">{waves}</g>
+    <g class="boat">
+      <path d="M244 92 h38 l-7 9 h-24z" fill="#FFF4E2"/>
+      <path d="M262 92 v-22 l-14 22z" fill="#FFF4E2" fill-opacity=".9"/>
+      <path d="M264 92 v-18 l11 18z" fill="#F4C27A"/>
+    </g>"""
+
+    glowc = {"summit": "#FFD39A", "forest": "#E8F6EA", "river": "#9FE0D8"}[kind]
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label} — {target}">
+  <title>{label} — {target}</title>
+  <defs>
+    <linearGradient id="bg{idx}" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0"  stop-color="{bg[0]}"/>
+      <stop offset=".6" stop-color="{bg[1]}"/>
+      <stop offset="1"  stop-color="{bg[2]}"/>
+    </linearGradient>
+    <radialGradient id="glow{idx}" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="{glowc}" stop-opacity=".55"/>
+      <stop offset="1" stop-color="{glowc}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="scrim{idx}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="{bg[2] if kind != 'summit' else '#1E1C36'}" stop-opacity=".92"/>
+      <stop offset=".5"  stop-color="{bg[2] if kind != 'summit' else '#1E1C36'}" stop-opacity=".55"/>
+      <stop offset=".75" stop-color="{bg[2] if kind != 'summit' else '#1E1C36'}" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="cc{idx}"><rect width="{W}" height="{H}" rx="14"/></clipPath>
+  </defs>
+  <style>
+    .tg {{ font-family:{MONO}; font-size:9.5px; letter-spacing:2.6px; fill:{GOLD}; }}
+    .ds {{ font-family:{MONO}; font-size:9.5px; letter-spacing:1.6px; fill:{CREAM}; fill-opacity:.5; }}
+    .lb {{ font-family:{SERIF}; font-size:30px; fill:{CREAM}; letter-spacing:-.3px; }}
+    .tx {{ font-family:{MONO}; font-size:11.5px; letter-spacing:.3px; fill:{SAGE}; }}
+    .ar {{ animation:ar 2.6s ease-in-out infinite; }}
+    @keyframes ar {{ 0%,100% {{ transform:translate(0,0); }} 50% {{ transform:translate(2px,-2px); }} }}
+    .sunp {{ transform-box:fill-box; transform-origin:center; animation:sunp 5s ease-in-out infinite; }}
+    @keyframes sunp {{ 0%,100% {{ transform:scale(1); opacity:.7; }} 50% {{ transform:scale(1.2); opacity:1; }} }}
+    .sw {{ transform-box:fill-box; transform-origin:50% 100%; animation:sw 5s ease-in-out infinite alternate; }}
+    @keyframes sw {{ from {{ transform:rotate(-1.4deg); }} to {{ transform:rotate(1.4deg); }} }}
+    .fogc {{ animation:fogc 12s ease-in-out infinite alternate; }}
+    @keyframes fogc {{ from {{ transform:translateX(-30px); }} to {{ transform:translateX(30px); }} }}
+    .wave {{ animation:wave linear infinite; }}
+    @keyframes wave {{ from {{ transform:translateX(0); }} to {{ transform:translateX(40px); }} }}
+    .boat {{ transform-box:fill-box; transform-origin:50% 100%; animation:boat 4s ease-in-out infinite; }}
+    @keyframes boat {{ 0%,100% {{ transform:translateY(0) rotate(-3deg); }} 50% {{ transform:translateY(3px) rotate(3deg); }} }}
+    {MOTE_CSS}
+    {reduced(".ar,.sunp,.sw,.fogc,.wave,.boat,.mote", ".mote { opacity:0; }")}
+  </style>
+  <g clip-path="url(#cc{idx})">
+    <rect width="{W}" height="{H}" fill="url(#bg{idx})"/>
+    {scene}
+    <rect width="{W}" height="{H}" fill="url(#scrim{idx})"/>
+
+    <text class="tg" x="24" y="32">{trail}</text>
+    <text class="ds" x="24" y="32" dx="{len(trail) * 8.6 + 6:.0f}">· {dist}</text>
+    <text class="lb" x="22" y="78">{label}</text>
+    <text class="tx" x="24" y="102">{target}</text>
+
+    <g class="ar">
+      <circle cx="{W - 28}" cy="28" r="12" fill="#000" fill-opacity=".18" stroke="{CREAM}" stroke-opacity=".45"/>
+      <path d="M{W - 32} 32 l8 -8 M{W - 30} 24 h6 v6" fill="none" stroke="{CREAM}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    {frame(W, H, 14, CREAM, ".2")}
+  </g>
+</svg>
+"""
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 6. CAMP — NIGHT
+# ═════════════════════════════════════════════════════════════════════════════
+def camp():
+    rnd = random.Random(2247)
+    W, H, HZ = 1000, 340, 254
+
+    M1 = ridge(rnd, -20, W + 20, 214, 10, [(120, 74, 220), (430, 96, 240), (760, 60, 200), (930, 88, 220)], iters=7)
+    M2 = ridge(rnd, -20, W + 20, 238, 6, [(280, 40, 240), (640, 30, 220)], iters=6)
+    M3 = ridge(rnd, -20, W + 20, HZ + 1, 2, [], iters=4)
+    t2 = treeline(rnd, M2, 8, 18, 5, sink=3)
+    t3 = treeline(rnd, M3, 14, 40, 7, sink=3, hscale=lambda x: .45 if 150 < x < 280 else 1)
+    snow = snowcap(rnd, M1, 150, (5, 16))
+
+    stars = []
+    for _ in range(190):
+        x, y = rnd.uniform(0, W), rnd.uniform(0, HZ - 40) ** 1.0
+        r = rnd.choice([.4, .5, .6, .7, .8, 1.0, 1.3])
+        if rnd.random() < .4:
+            d = rnd.uniform(2.5, 6)
+            stars.append(f'<circle class="tw" cx="{n(x)}" cy="{n(y)}" r="{r}" style="animation-duration:{d:.1f}s;animation-delay:-{rnd.uniform(0, d):.1f}s"/>')
+        else:
+            stars.append(f'<circle cx="{n(x)}" cy="{n(y)}" r="{r}" fill-opacity="{rnd.uniform(.3, .9):.2f}"/>')
+    # milky way: a dense diagonal band of fine stars
+    for _ in range(220):
+        t = rnd.uniform(0, 1)
+        x = -40 + t * 1100
+        y = 96 + (x - 520) * -.2126 + rnd.gauss(0, 20)
+        if 0 < y < HZ - 30:
+            stars.append(f'<circle cx="{n(x)}" cy="{n(y)}" r="{rnd.choice([.3, .4, .5])}" fill-opacity="{rnd.uniform(.25, .7):.2f}"/>')
+    stars = "".join(stars)
+
+    def curtain(base, amp, h, phase, k):
+        top = [(x, base - h + amp * .6 * math.sin(x / 140 + phase + k)) for x in range(-40, W + 80, 40)]
+        bot = [(x, base + amp * math.sin(x / 110 + phase * 1.3 + k * .8)) for x in range(-40, W + 80, 40)]
+        return smooth(top)[0:] + " L" + " L".join(P(x, y) for x, y in reversed(bot)) + "Z"
+
+    auroras = []
+    for i, (base, amp, h, ph, gid, dur) in enumerate([(128, 22, 80, 0, "a1", 14), (104, 18, 62, 2, "a2", 18), (150, 14, 46, 4, "a3", 11)]):
+        frames = [curtain(base, amp, h, ph, k) for k in (0, 1.6, 3.1, 0)]
+        auroras.append(f'<path fill="url(#{gid})" d="{frames[0]}"><animate attributeName="d" dur="{dur}s" repeatCount="indefinite" '
+                       f'values="{";".join(frames)}" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/></path>')
+    auroras = "".join(auroras)
+
+    # campfire and tent on the far-left shore
+    FX, FY = 214, HZ + 8
+    flames = []
+    for dx, h, w, col, dur in [(-3, 18, 7, EMBER, .7), (2, 24, 8, "#FFB257", .55), (0, 14, 5, "#FFE6A8", .45)]:
+        a = f"M{FX + dx - w} {FY} Q{FX + dx - w * .6} {FY - h * .5} {FX + dx} {FY - h} Q{FX + dx + w * .6} {FY - h * .5} {FX + dx + w} {FY}Z"
+        b = f"M{FX + dx - w} {FY} Q{FX + dx - w * .9} {FY - h * .6} {FX + dx + 3} {FY - h * 1.15} Q{FX + dx + w * .3} {FY - h * .4} {FX + dx + w} {FY}Z"
+        c = f"M{FX + dx - w} {FY} Q{FX + dx - w * .2} {FY - h * .4} {FX + dx - 3} {FY - h * .9} Q{FX + dx + w} {FY - h * .55} {FX + dx + w} {FY}Z"
+        flames.append(f'<path fill="{col}" d="{a}"><animate attributeName="d" dur="{dur}s" repeatCount="indefinite" values="{a};{b};{c};{a}"/></path>')
+    flames = "".join(flames)
+    sparks = "".join(
+        f'<circle class="spark" cx="{n(FX + rnd.uniform(-4, 4))}" cy="{FY - 12}" r="{n(rnd.uniform(.6, 1.3))}" '
+        f'style="animation-duration:{rnd.uniform(1.8, 3.4):.1f}s;animation-delay:-{rnd.uniform(0, 3.4):.1f}s;--dx:{rnd.uniform(-14, 14):.0f}px"/>'
+        for _ in range(16))
+    flies = motes(rnd, 14, 300, 980, HZ - 50, HZ + 60, "#D8FF8A", 1.3, cls="fly")
+    fire_glints = "".join(
+        f'<rect class="glint" x="{n(FX - w / 2 + rnd.uniform(-3, 3))}" y="{n(HZ + 8 + i * 5.5)}" width="{n(w)}" height="1.4" rx=".7" '
+        f'style="animation-delay:-{rnd.uniform(0, 2):.2f}s"/>'
+        for i, w in enumerate([22, 18, 26, 14, 16, 10, 12, 6, 8, 5]))
+
+    fg = "".join(f'<path d="{fir(rnd, x, b, h, .3)}"/>' for x, b, h in [(-24, H + 20, 300), (40, H + 20, 210), (968, H + 20, 260), (1020, H + 20, 330), (912, H + 20, 150)])
+    shore = smooth([(-20, HZ + 2), (120, HZ + 6), (260, HZ + 3), (400, HZ + 2)]) + f" L400 {HZ} L-20 {HZ}Z"
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Camp at an alpine lake under the aurora. Thanks for walking the trail. Click to return to the trailhead.">
+  <title>22:47 · camp · thanks for walking the trail</title>
+  <defs>
+    <linearGradient id="nsky" x1="0" y1="0" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#03060F"/>
+      <stop offset=".55" stop-color="#0A1631"/>
+      <stop offset="1"   stop-color="#173A4E"/>
+    </linearGradient>
+    <radialGradient id="milky" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#C9C2FF" stop-opacity=".2"/>
+      <stop offset=".55" stop-color="#9F96E8" stop-opacity=".08"/>
+      <stop offset="1"   stop-color="#9F96E8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="a1" x1="0" y1="40" x2="0" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="{LILAC}" stop-opacity="0"/>
+      <stop offset=".45" stop-color="#58E0C0" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="{AURORA}" stop-opacity=".62"/>
+    </linearGradient>
+    <linearGradient id="a2" x1="0" y1="30" x2="0" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="{LILAC}" stop-opacity="0"/>
+      <stop offset=".6"  stop-color="{LILAC}" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="#7CF7D0" stop-opacity=".45"/>
+    </linearGradient>
+    <linearGradient id="a3" x1="0" y1="100" x2="0" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="{AURORA}" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#B6FFE0" stop-opacity=".5"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+    <linearGradient id="mt1" x1="0" y1="120" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#14263D"/><stop offset="1" stop-color="#0E1C2E"/></linearGradient>
+    <linearGradient id="nlake" x1="0" y1="{HZ}" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#173A4E"/>
+      <stop offset="1"   stop-color="#050B14"/>
+    </linearGradient>
+    <radialGradient id="fireglow" cx="{FX}" cy="{FY - 6}" r="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#FFB25A" stop-opacity=".55"/>
+      <stop offset=".35" stop-color="#F2794A" stop-opacity=".18"/>
+      <stop offset="1"   stop-color="#F2794A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC27A"/><stop offset="1" stop-color="#C9632F"/>
+    </linearGradient>
+    <linearGradient id="shoot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    {ripple_mask("nrm", H, W, HZ, 4, 2.8)}
+    <clipPath id="nlc"><rect y="{HZ}" width="{W}" height="{H - HZ}"/></clipPath>
+    <clipPath id="nf"><rect width="{W}" height="{H}" rx="18"/></clipPath>
+  </defs>
+  <style>
+    .tw {{ animation:tw ease-in-out infinite; }}
+    @keyframes tw {{ 0%,100% {{ opacity:.2; }} 50% {{ opacity:1; }} }}
+    .shoot {{ animation:shoot 11s ease-in infinite; }}
+    @keyframes shoot {{ 0%,86% {{ transform:translate(0,0); opacity:0; }} 87% {{ opacity:1; }} 94%,100% {{ transform:translate(-260px,120px); opacity:0; }} }}
+    .spark {{ fill:#FFC679; animation:spark ease-out infinite; }}
+    @keyframes spark {{ from {{ transform:translate(0,0); opacity:1; }} to {{ transform:translate(var(--dx),-70px); opacity:0; }} }}
+    .glow {{ animation:flick 1.8s ease-in-out infinite; }}
+    @keyframes flick {{ 0%,100% {{ opacity:.85; }} 30% {{ opacity:1; }} 55% {{ opacity:.7; }} 75% {{ opacity:.95; }} }}
+    .glint {{ fill:#FFB866; animation:glint 1.6s ease-in-out infinite; }}
+    @keyframes glint {{ 0%,100% {{ opacity:.15; }} 50% {{ opacity:.85; }} }}
+    .fly {{ animation:fly ease-in-out infinite; }}
+    @keyframes fly {{ 0%,100% {{ transform:translate(0,0); opacity:0; }} 25% {{ opacity:.95; }} 50% {{ transform:translate(14px,-10px); opacity:.2; }} 75% {{ transform:translate(-8px,-18px); opacity:.9; }} }}
+    .t  {{ font-family:{SERIF}; font-size:38px; fill:{CREAM}; letter-spacing:-.3px; }}
+    .m  {{ font-family:{MONO}; font-size:10.5px; letter-spacing:2.8px; fill:#9FD8C4; fill-opacity:.75; }}
+    .up {{ font-family:{MONO}; font-size:10.5px; letter-spacing:2.8px; fill:{GOLD}; }}
+    .cue {{ animation:cue 2.4s ease-in-out infinite; }}
+    @keyframes cue {{ 0%,100% {{ transform:translateY(2px); opacity:.5; }} 50% {{ transform:translateY(-3px); opacity:1; }} }}
+    {reduced(".tw,.shoot,.spark,.glow,.glint,.fly,.cue,pattern", ".shoot,.spark,.fly { opacity:0; }")}
+  </style>
+  <g clip-path="url(#nf)">
+    <g id="night">
+      <rect width="{W}" height="{HZ + 2}" fill="url(#nsky)"/>
+      <ellipse cx="520" cy="96" rx="620" ry="62" fill="url(#milky)" transform="rotate(-12 520 96)"/>
+      <g fill="#FFFFFF">{stars}</g>
+      <g filter="url(#soft)">{auroras}</g>
+      <path d="{fill_under(M1, HZ + 30)}" fill="url(#mt1)"/>
+      <path d="{line_of(M1)}" fill="none" stroke="{AURORA}" stroke-opacity=".22" stroke-width="1.2"/>
+      <path d="{snow}" fill="#CFE9F0" fill-opacity=".35"/>
+      <path d="{fill_under(M2, HZ + 30)}" fill="#0A1626"/><path d="{t2}" fill="#0A1626"/>
+      <path d="{fill_under(M3, HZ + 30)}" fill="#060D16"/><path d="{t3}" fill="#060D16"/>
+    </g>
+
+    <!-- a shooting star, now and then -->
+    <g class="shoot"><path d="M760 40 l120 -55" stroke="url(#shoot)" stroke-width="1.4" transform="rotate(180 820 12)"/></g>
+    <g class="shoot" style="animation-duration:17s;animation-delay:-6s"><path d="M380 30 l90 -40" stroke="url(#shoot)" stroke-width="1.1" transform="rotate(180 425 10)"/></g>
+
+    <!-- lake -->
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="url(#nlake)"/>
+    <g clip-path="url(#nlc)" mask="url(#nrm)" opacity=".5">
+      <use xlink:href="#night" href="#night" transform="matrix(1 0 0 -1 0 {2 * HZ})"/>
+    </g>
+    <g>{fire_glints}</g>
+
+    <!-- camp -->
+    <path d="{shore}" fill="#060D16"/>
+    <rect class="glow" width="{W}" height="{H}" fill="url(#fireglow)"/>
+    <g transform="translate(150 {HZ + 8})">
+      <path d="M-26 0 L0 -36 L26 0Z" fill="url(#tent)" class="glow"/>
+      <path d="M0 -36 L-4 0 h8z" fill="#7A2E14" fill-opacity=".8"/>
+      <path d="M-26 0 L0 -36 L26 0" fill="none" stroke="#2A140A" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M0 -36 l-4 -5 M0 -36 l4 -5" stroke="#2A140A"/>
+    </g>
+    <path d="M{FX - 10} {FY + 1} l20 -5 M{FX - 10} {FY - 4} l20 5" stroke="#3A1E10" stroke-width="3" stroke-linecap="round"/>
+    <g>{flames}</g>
+    {sparks}
+    {flies}
+    <g fill="#03070C">{fg}</g>
 
     <!-- sign-off -->
-    <text class="big" x="{tx}" y="96" text-anchor="middle">10,935<tspan font-size="18" fill="{MUTE}" dx="8">m</tspan></text>
-    <text class="zn" x="{tx}" y="122" text-anchor="middle">HADAL ZONE &#183; CHALLENGER DEEP</text>
-    <text class="nt" x="{tx}" y="146" text-anchor="middle">you've reached the bottom. thanks for diving.</text>
-    <g class="rise">
-      <path d="M{tx - 6} 176 l6 -6 l6 6" fill="none" stroke="{BIO}" stroke-width="1.4"/>
-      <text class="up" x="{tx}" y="192" text-anchor="middle">RESURFACE</text>
-    </g>
+    <text class="m" x="560" y="74" text-anchor="middle">22:47  ·  CAMP  ·  ALPINE LAKE  ·  ELEV. 1,640 m</text>
+    <text class="t" x="560" y="122" text-anchor="middle">Thanks for walking the <tspan font-style="italic" fill="#B9FBE0">trail</tspan>.</text>
+    <g class="cue"><path d="M{W - 238} {H - 26} l5 -5 l5 5" fill="none" stroke="{GOLD}" stroke-width="1.4" stroke-linecap="round"/></g>
+    <text class="up" x="{W - 64}" y="{H - 22}" text-anchor="end">RETURN TO TRAILHEAD</text>
+    <text class="m" x="96" y="{H - 22}" fill-opacity=".45">made in vancouver, bc</text>
 
-    <rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="6" fill="none" stroke="{LINE}"/>
+    {frame(W, H, 18, AURORA, ".18")}
   </g>
 </svg>
 """
@@ -756,17 +1382,14 @@ def floor():
 if __name__ == "__main__":
     print("Generating assets...")
     write("banner.svg", banner())
+    write("chapter-forest.svg", chapter_forest())
     write("identity.svg", identity())
-    write("floor.svg", floor())
-    for i, (fn, depth, name, layer, reading, note) in enumerate([
-        ("zone-twilight", "200",   "TWILIGHT ZONE", "MESOPELAGIC",   "&#8776; 21 ATM &#183; LIGHT 1%",  "sunlight gives out here"),
-        ("zone-abyss",    "4,000", "ABYSSAL ZONE",  "ABYSSOPELAGIC", "&#8776; 401 ATM &#183; 2&#176;C",  "send a signal, someone's listening"),
+    write("chapter-river.svg", chapter_river())
+    for i, (fn, kind, label, target, trail, dist) in enumerate([
+        ("btn-portfolio", "summit", "Portfolio", "adityapadmarajan.com",        "TRAIL 01", "SUMMIT"),
+        ("btn-linkedin",  "forest", "LinkedIn",  "in/aditya-padmarajan",        "TRAIL 02", "BASECAMP"),
+        ("btn-email",     "river",  "Email",     "aditya.padmarajan@gmail.com", "TRAIL 03", "DOWNSTREAM"),
     ]):
-        write(f"{fn}.svg", zone(depth, name, layer, reading, note, i))
-    for j, (fn, label, target, icon, chan, primary) in enumerate([
-        ("btn-portfolio", "PORTFOLIO", "adityapadmarajan.com",        "globe", "BEACON.01", True),
-        ("btn-linkedin",  "LINKEDIN",  "in/aditya-padmarajan",        "link",  "BEACON.02", False),
-        ("btn-email",     "EMAIL",     "aditya.padmarajan@gmail.com", "mail",  "BEACON.03", False),
-    ]):
-        write(f"{fn}.svg", card(label, target, icon, chan, primary, j))
+        write(f"{fn}.svg", card(kind, label, target, trail, dist, i))
+    write("camp.svg", camp())
     print("Done.")

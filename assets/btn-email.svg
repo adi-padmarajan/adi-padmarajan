@@ -1,70 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 104" width="340" height="104" role="img" aria-label="EMAIL — aditya.padmarajan@gmail.com">
-  <title>EMAIL &#8212; aditya.padmarajan@gmail.com</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 128" width="340" height="128" role="img" aria-label="Email — aditya.padmarajan@gmail.com">
+  <title>Email — aditya.padmarajan@gmail.com</title>
   <defs>
-    <linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#061A3A"/>
-      <stop offset="100%" stop-color="#01040B"/>
+    <linearGradient id="bg2" x1="0" y1="0" x2=".4" y2="1">
+      <stop offset="0"  stop-color="#14404A"/>
+      <stop offset=".6" stop-color="#0E2E36"/>
+      <stop offset="1"  stop-color="#081C22"/>
     </linearGradient>
-    <radialGradient id="cwell" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#38E1FF" stop-opacity=".28"/>
-      <stop offset="100%" stop-color="#38E1FF" stop-opacity="0"/>
+    <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#9FE0D8" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#9FE0D8" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="cedge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#38E1FF"  stop-opacity=".32"/>
-      <stop offset="100%" stop-color="#8B6CFF" stop-opacity=".32"/>
+    <linearGradient id="scrim2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#081C22" stop-opacity=".92"/>
+      <stop offset=".5"  stop-color="#081C22" stop-opacity=".55"/>
+      <stop offset=".75" stop-color="#081C22" stop-opacity="0"/>
     </linearGradient>
-    <clipPath id="cf"><rect width="340" height="104" rx="6"/></clipPath>
+    <clipPath id="cc2"><rect width="340" height="128" rx="14"/></clipPath>
   </defs>
   <style>
-    .lb { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:15px; font-weight:700; letter-spacing:2.6px; fill:#DCEBFF; }
-    .tg { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:10.5px; letter-spacing:.9px; fill:#5873A0; }
-    .ch { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:9.5px; letter-spacing:2.4px; fill:#5873A0; }
-    .ar { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:19px; font-weight:700; fill:#38E1FF; animation:ar 2.6s ease-in-out infinite; }
-    @keyframes ar { 0%,100% {transform:translateX(0);opacity:.55} 50% {transform:translateX(4px);opacity:1} }
-    .dt { animation:dt 2.4s ease-in-out infinite; }
-    @keyframes dt { 0%,100% {opacity:.25} 50% {opacity:1} }
-    .ring { fill:none; stroke:#38E1FF; stroke-width:1; vector-effect:non-scaling-stroke;
-             transform-origin:38px 52px; animation:ring 3.6s ease-out infinite; }
-    @keyframes ring { 0% {transform:scale(.55);opacity:.8} 100% {transform:scale(2.2);opacity:0} }
-    .snow { fill:#DCEBFF; animation:sink linear infinite; }
-    @keyframes sink { from {transform:translate(0,0)} to {transform:translate(-14px,114px)} }
-    @media (prefers-reduced-motion: reduce) {
-      .ar,.dt,.ring,.snow { animation:none; }
-      .ring { opacity:0 }
+    .tg { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:9.5px; letter-spacing:2.6px; fill:#F4C27A; }
+    .ds { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:9.5px; letter-spacing:1.6px; fill:#FFF4E2; fill-opacity:.5; }
+    .lb { font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,'Times New Roman',serif; font-size:30px; fill:#FFF4E2; letter-spacing:-.3px; }
+    .tx { font-family:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:11.5px; letter-spacing:.3px; fill:#A9C4AA; }
+    .ar { animation:ar 2.6s ease-in-out infinite; }
+    @keyframes ar { 0%,100% { transform:translate(0,0); } 50% { transform:translate(2px,-2px); } }
+    .sunp { transform-box:fill-box; transform-origin:center; animation:sunp 5s ease-in-out infinite; }
+    @keyframes sunp { 0%,100% { transform:scale(1); opacity:.7; } 50% { transform:scale(1.2); opacity:1; } }
+    .sw { transform-box:fill-box; transform-origin:50% 100%; animation:sw 5s ease-in-out infinite alternate; }
+    @keyframes sw { from { transform:rotate(-1.4deg); } to { transform:rotate(1.4deg); } }
+    .fogc { animation:fogc 12s ease-in-out infinite alternate; }
+    @keyframes fogc { from { transform:translateX(-30px); } to { transform:translateX(30px); } }
+    .wave { animation:wave linear infinite; }
+    @keyframes wave { from { transform:translateX(0); } to { transform:translateX(40px); } }
+    .boat { transform-box:fill-box; transform-origin:50% 100%; animation:boat 4s ease-in-out infinite; }
+    @keyframes boat { 0%,100% { transform:translateY(0) rotate(-3deg); } 50% { transform:translateY(3px) rotate(3deg); } }
+    .mote { animation:mote ease-in-out infinite; }
+    @keyframes mote {
+      0%   { transform:translate(0,0);      opacity:0; }
+      20%  { opacity:.9; }
+      50%  { transform:translate(9px,-14px); opacity:.35; }
+      80%  { opacity:.85; }
+      100% { transform:translate(-4px,-30px); opacity:0; }
     }
+    @media (prefers-reduced-motion: reduce) { .ar,.sunp,.sw,.fogc,.wave,.boat,.mote { animation:none !important; } .mote { opacity:0; } }
   </style>
+  <g clip-path="url(#cc2)">
+    <rect width="340" height="128" fill="url(#bg2)"/>
+    
+    <circle cx="300" cy="36" r="30" fill="url(#glow2)"/>
+    <g fill="none" stroke="#9FE0D8" stroke-width="1.3" stroke-linecap="round"><path class="wave" d="M160 78 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0 q10 -2.4 20 0 t20 0" stroke-opacity="0.25" style="animation-duration:5s"/><path class="wave" d="M160 92 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0 q10 -3 20 0 t20 0" stroke-opacity="0.35" style="animation-duration:4.2s"/><path class="wave" d="M160 106 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0 q10 -3.6 20 0 t20 0" stroke-opacity="0.5" style="animation-duration:3.4s"/><path class="wave" d="M160 120 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0 q10 -4.2 20 0 t20 0" stroke-opacity="0.65" style="animation-duration:2.8s"/></g>
+    <g class="boat">
+      <path d="M244 92 h38 l-7 9 h-24z" fill="#FFF4E2"/>
+      <path d="M262 92 v-22 l-14 22z" fill="#FFF4E2" fill-opacity=".9"/>
+      <path d="M264 92 v-18 l11 18z" fill="#F4C27A"/>
+    </g>
+    <rect width="340" height="128" fill="url(#scrim2)"/>
 
-  <g clip-path="url(#cf)">
-    <rect width="340" height="104" fill="url(#cbg)"/>
-    <circle class="snow" cx="269" cy="-4" r="0.7" fill-opacity="0.18" style="animation-duration:12.0s;animation-delay:-1.0s"/>
-    <circle class="snow" cx="65" cy="-4" r="0.5" fill-opacity="0.23" style="animation-duration:10.6s;animation-delay:-10.4s"/>
-    <circle class="snow" cx="57" cy="-4" r="0.6" fill-opacity="0.17" style="animation-duration:9.7s;animation-delay:-8.2s"/>
-    <circle class="snow" cx="258" cy="-4" r="0.5" fill-opacity="0.25" style="animation-duration:17.8s;animation-delay:-9.4s"/>
-    <circle class="snow" cx="255" cy="-4" r="0.7" fill-opacity="0.16" style="animation-duration:16.1s;animation-delay:-3.7s"/>
-    <circle class="snow" cx="239" cy="-4" r="0.9" fill-opacity="0.29" style="animation-duration:18.5s;animation-delay:-16.0s"/>
-    <circle class="snow" cx="58" cy="-4" r="1.1" fill-opacity="0.30" style="animation-duration:21.1s;animation-delay:-14.3s"/>
-    <circle class="snow" cx="239" cy="-4" r="0.4" fill-opacity="0.15" style="animation-duration:15.9s;animation-delay:-8.0s"/>
-    <circle class="snow" cx="274" cy="-4" r="0.6" fill-opacity="0.23" style="animation-duration:20.3s;animation-delay:-19.5s"/>
-    <circle class="snow" cx="240" cy="-4" r="0.6" fill-opacity="0.19" style="animation-duration:14.2s;animation-delay:-9.2s"/>
+    <text class="tg" x="24" y="32">TRAIL 03</text>
+    <text class="ds" x="24" y="32" dx="75">· DOWNSTREAM</text>
+    <text class="lb" x="22" y="78">Email</text>
+    <text class="tx" x="24" y="102">aditya.padmarajan@gmail.com</text>
 
-    <!-- channel tag -->
-    <text class="ch" x="308" y="24" text-anchor="end">BEACON.03</text>
-    <circle class="dt" cx="320" cy="20" r="3.2" fill="#38E1FF" style="animation-delay:-1.6s"/>
-
-    <!-- beacon: icon with sonar rings going out from it -->
-    <circle cx="38" cy="52" r="30" fill="url(#cwell)"/>
-    <circle class="ring" cx="38" cy="52" r="20" style="animation-delay:-2.4s"/>
-    <circle class="ring" cx="38" cy="52" r="20" style="animation-delay:-4.2s"/>
-    <circle cx="38" cy="52" r="18" fill="#01040B" stroke="#38E1FF" stroke-opacity=".32"/>
-    <g transform="translate(29,43)" stroke="#38E1FF" stroke-width="1.3" fill="none" stroke-linecap="round"><rect x="1" y="3" width="16" height="12" rx="1.5"/><path d="M1.6 4.2 9 10l7.4-5.8"/></g>
-
-    <!-- label + target -->
-    <text class="lb" x="76" y="50">EMAIL</text>
-    <text class="tg" x="76" y="68">aditya.padmarajan@gmail.com</text>
-
-    <!-- enter arrow -->
-    <text class="ar" x="318" y="65" text-anchor="end">&#8250;</text>
-
-    <rect x=".5" y=".5" width="339" height="103" rx="6" fill="none" stroke="url(#cedge)"/>
+    <g class="ar">
+      <circle cx="312" cy="28" r="12" fill="#000" fill-opacity=".18" stroke="#FFF4E2" stroke-opacity=".45"/>
+      <path d="M308 32 l8 -8 M310 24 h6 v6" fill="none" stroke="#FFF4E2" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <rect x=".5" y=".5" width="339" height="127" rx="14" fill="none" stroke="#FFF4E2" stroke-opacity=".2"/>
   </g>
 </svg>
