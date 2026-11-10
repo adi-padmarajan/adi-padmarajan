@@ -2,7 +2,10 @@
 """
 Generates the animated SVG assets for adi-padmarajan's profile README.
 
-Concept: the README is a day on the trail in the Pacific Northwest. Reading top
+Night edition (what the README shows now): night-hero, night-notes,
+night-card-*, night-footer — one clear night at an alpine lake.
+
+Original concept: the README is a day on the trail in the Pacific Northwest. Reading top
 to bottom you walk from dawn to night:
 
     06:12  dawn       alpenglow on glacier peaks, a lake holding the sunrise
@@ -1383,8 +1386,668 @@ def camp():
 """
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# NIGHT EDITION — one clear night at an alpine lake, told in four panels
+#
+#   night-hero      aurora storm over the lake, a fire, someone watching it
+#   night-notes     field notes by firelight, each one a star in a constellation
+#   night-card-*    three ways to reach me: summit, forest, lantern on the lake
+#   night-footer    the fire, still going
+#
+# Shared: one sky gradient, one star palette, one aurora, one frame. Every
+# panel ends in the same black treeline so they read as one continuous scene.
+# ═════════════════════════════════════════════════════════════════════════════
+MINT   = "#B9FBE0"
+FROST  = "#DDEBFF"
+SKY_STOPS = [(0, "#01030A"), (.45, "#060E26"), (.8, "#0D2240"), (1, "#173A55")]
+STAR_COLS = ["#FFFFFF"] * 7 + ["#CFE3FF", "#FFE9C7", "#E2DAFF"]
+
+
+def sky_grad(gid, y0, y1):
+    stops = "".join(f'<stop offset="{o}" stop-color="{c}"/>' for o, c in SKY_STOPS)
+    return f'<linearGradient id="{gid}" x1="0" y1="{y0}" x2="0" y2="{y1}" gradientUnits="userSpaceOnUse">{stops}</linearGradient>'
+
+
+def dots(points):
+    """Many tiny stars as a single path of circles — far smaller than <circle> soup."""
+    return "".join(f"M{n(x - r)} {n(y)}a{n(r)} {n(r)} 0 1 0 {n(2 * r)} 0a{n(r)} {n(r)} 0 1 0 {n(-2 * r)} 0" for x, y, r in points)
+
+
+def starfield(rnd, W, y0, y1, count, tw=.35, avoid=None):
+    out, still = [], {.3: [], .55: [], .85: []}
+    for _ in range(count):
+        x, y = rnd.uniform(0, W), y0 + (y1 - y0) * rnd.random() ** 1.25
+        if avoid and avoid(x, y) and rnd.random() < .7:
+            continue
+        r = rnd.choice([.35, .45, .55, .65, .8, .95, 1.15])
+        if rnd.random() < tw:
+            d = rnd.uniform(2.5, 7.5)
+            out.append(f'<circle class="tw" cx="{n(x)}" cy="{n(y)}" r="{r}" fill="{rnd.choice(STAR_COLS)}" '
+                       f'style="animation-duration:{d:.1f}s;animation-delay:-{rnd.uniform(0, d):.1f}s"/>')
+        else:
+            still[rnd.choice([.3, .55, .85])].append((x, y, r))
+    out += [f'<path fill="#fff" fill-opacity="{o}" d="{dots(p)}"/>' for o, p in still.items() if p]
+    return "".join(out)
+
+
+def bright_star(x, y, s, col, d, delay):
+    return (f'<g transform="translate({n(x)} {n(y)}) scale({s})"><g class="tw" style="animation-duration:{d}s;animation-delay:-{delay}s">'
+            f'<circle r="7" fill="url(#bstar)"/>'
+            f'<path d="M-11 0H11M0 -11V11" stroke="{col}" stroke-width=".45" stroke-opacity=".75"/>'
+            f'<path d="M-4 -4L4 4M-4 4L4 -4" stroke="{col}" stroke-width=".35" stroke-opacity=".4"/>'
+            f'<circle r="1.25" fill="#fff"/></g></g>')
+
+
+def aurora(rnd, x0, x1, base, hgt, step, grad, glow=True):
+    """A curtain: hundreds of vertical rays standing on a folding lower edge.
+    The lower edge is sharp and bright, the rays fade upward into violet,
+    which is how the real thing looks from the ground."""
+    groups, x = [[], [], [], []], x0
+    while x < x1:
+        b, h = base(x), max(18, hgt(x) * rnd.uniform(.72, 1.18))
+        w = step * rnd.uniform(1.1, 2.3)
+        groups[rnd.randrange(4)].append(
+            f'<rect x="{n(x)}" y="{n(b - h)}" width="{n(w)}" height="{n(h + 2)}" fill-opacity="{rnd.uniform(.22, .8):.2f}"/>')
+        x += step * rnd.uniform(.7, 1.3)
+    rays = "".join(f'<g class="rp" style="animation-duration:{rnd.uniform(2.6, 6.5):.1f}s;animation-delay:-{rnd.uniform(0, 6):.1f}s">{"".join(g)}</g>'
+                   for g in groups)
+    xs = list(range(int(x0), int(x1) + 12, 12))
+    edge = smooth([(x, base(x) + 1) for x in xs])
+    out = ""
+    if glow:
+        body = smooth([(x, base(x) - hgt(x) * .75) for x in xs]) + " L" + " L".join(P(x, base(x) + 6) for x in reversed(xs)) + "Z"
+        out += f'<path d="{body}" fill="url(#{grad})" opacity=".55" filter="url(#ablur)"/>'
+    out += f'<g fill="url(#{grad})" filter="url(#rsoft)">{rays}</g>'
+    out += f'<path d="{edge}" fill="none" stroke="#D9FFEF" stroke-opacity=".38" stroke-width="1.1"/>'
+    out += f'<path d="{edge}" fill="none" stroke="{AURORA}" stroke-opacity=".3" stroke-width="5" filter="url(#ablur2)"/>'
+    return out
+
+
+def aurora_defs():
+    return f"""<linearGradient id="ray1" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0"   stop-color="#E4FFF4" stop-opacity=".95"/>
+      <stop offset=".05" stop-color="#7CFFC8" stop-opacity=".85"/>
+      <stop offset=".32" stop-color="#34D6A0" stop-opacity=".38"/>
+      <stop offset=".68" stop-color="#7C6BFF" stop-opacity=".16"/>
+      <stop offset="1"   stop-color="#C26BFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ray2" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0"   stop-color="#B8FFE6" stop-opacity=".7"/>
+      <stop offset=".1"  stop-color="#4FE3B8" stop-opacity=".5"/>
+      <stop offset=".5"  stop-color="#B07CFF" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="#FF7FD0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="asw" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0">
+      <stop offset="0" stop-color="#bdbdbd"/><stop offset=".38" stop-color="#bdbdbd"/>
+      <stop offset=".5" stop-color="#fff"/>
+      <stop offset=".62" stop-color="#bdbdbd"/><stop offset="1" stop-color="#bdbdbd"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-1000 0;1000 0" dur="11s" repeatCount="indefinite"/>
+    </linearGradient>
+    <mask id="am" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="900"><rect x="-200" y="-200" width="1400" height="900" fill="url(#asw)"/></mask>
+    <filter id="ablur" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="rsoft" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation="1.6 0"/></filter>
+    <filter id="ablur2" x="-10%" y="-100%" width="120%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+    <radialGradient id="bstar"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".3" stop-color="#CFE3FF" stop-opacity=".15"/><stop offset="1" stop-color="#CFE3FF" stop-opacity="0"/></radialGradient>"""
+
+
+def campfire(rnd, FX, FY, s=1.0, sparks=18):
+    out = []
+    out.append(f'<ellipse class="glow" cx="{n(FX)}" cy="{n(FY)}" rx="{n(15 * s)}" ry="{n(3.2 * s)}" fill="{EMBER}" fill-opacity=".85"/>')
+    out.append(f'<path d="M{n(FX - 15 * s)} {n(FY + 1)} l{n(30 * s)} {n(-6 * s)} M{n(FX - 15 * s)} {n(FY - 5 * s)} l{n(30 * s)} {n(6 * s)}" '
+               f'stroke="#2A1408" stroke-width="{n(3.8 * s)}" stroke-linecap="round"/>')
+    for dx, h, w, col, dur in [(-5, 22, 8, EMBER, .72), (3, 31, 9, "#FFB257", .56), (-1, 21, 6, "#FFE6A8", .46), (1, 11, 3.5, "#FFFBEA", .38)]:
+        dx, h, w = dx * s, h * s, w * s
+        X, Y = FX + dx, FY - 2 * s
+        a = f"M{n(X - w)} {n(Y)} Q{n(X - w * .6)} {n(Y - h * .5)} {n(X)} {n(Y - h)} Q{n(X + w * .6)} {n(Y - h * .5)} {n(X + w)} {n(Y)}Z"
+        b = f"M{n(X - w)} {n(Y)} Q{n(X - w * .9)} {n(Y - h * .6)} {n(X + 3 * s)} {n(Y - h * 1.15)} Q{n(X + w * .3)} {n(Y - h * .4)} {n(X + w)} {n(Y)}Z"
+        c = f"M{n(X - w)} {n(Y)} Q{n(X - w * .2)} {n(Y - h * .4)} {n(X - 3 * s)} {n(Y - h * .9)} Q{n(X + w)} {n(Y - h * .55)} {n(X + w)} {n(Y)}Z"
+        out.append(f'<path fill="{col}" d="{a}"><animate attributeName="d" dur="{dur}s" repeatCount="indefinite" values="{a};{b};{c};{a}"/></path>')
+    for _ in range(sparks):
+        d = rnd.uniform(1.8, 3.6)
+        out.append(f'<circle class="sp{rnd.choice("abc")}" cx="{n(FX + rnd.uniform(-5, 5) * s)}" cy="{n(FY - 14 * s)}" r="{n(rnd.uniform(.6, 1.4) * s)}" '
+                   f'style="animation-duration:{d:.1f}s;animation-delay:-{rnd.uniform(0, d):.1f}s"/>')
+    for i in range(3):
+        out.append(f'<path class="smoke" d="M{n(FX)} {n(FY - 34 * s)} q{n(-7 * s)} {n(-14 * s)} 0 {n(-28 * s)} q{n(7 * s)} {n(-14 * s)} 0 {n(-28 * s)}" '
+                   f'fill="none" stroke="#B4BFD0" stroke-opacity=".07" stroke-width="{n(8 * s)}" stroke-linecap="round" filter="url(#ablur2)" '
+                   f'style="animation-delay:-{i * 2.2:.1f}s"/>')
+    return "".join(out)
+
+
+def night_css(extra=""):
+    return f"""
+    .tw {{ animation:tw ease-in-out infinite; }}
+    @keyframes tw {{ 0%,100% {{ opacity:.22; }} 50% {{ opacity:1; }} }}
+    .rp {{ animation:rp ease-in-out infinite; }}
+    @keyframes rp {{ 0%,100% {{ opacity:.5; }} 35% {{ opacity:1; }} 65% {{ opacity:.68; }} }}
+    .sway {{ transform-box:fill-box; transform-origin:50% 100%; animation:sway ease-in-out infinite alternate; }}
+    @keyframes sway {{ from {{ transform:translateX(-16px) skewX(-3deg); }} to {{ transform:translateX(16px) skewX(3deg); }} }}
+    .grow {{ transform-box:fill-box; transform-origin:50% 100%; animation:grow 5.5s {EASE} both; }}
+    @keyframes grow {{ from {{ opacity:0; transform:scaleY(.25); }} to {{ opacity:1; transform:none; }} }}
+    .in {{ animation:rise 2.4s {EASE} both; }}
+    @keyframes rise {{ from {{ opacity:0; transform:translateY(14px); }} to {{ opacity:1; transform:none; }} }}
+    .fade {{ animation:fade 3.5s ease-out both; }}
+    @keyframes fade {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
+    .glow {{ animation:flick 1.8s ease-in-out infinite; }}
+    @keyframes flick {{ 0%,100% {{ opacity:.85; }} 30% {{ opacity:1; }} 55% {{ opacity:.7; }} 75% {{ opacity:.95; }} }}
+    .spa,.spb,.spc {{ fill:#FFC679; animation:ease-out infinite; }}
+    .spa {{ animation-name:spa; }} .spb {{ animation-name:spb; }} .spc {{ animation-name:spc; }}
+    @keyframes spa {{ from {{ transform:translate(0,0); opacity:1; }} to {{ transform:translate(-14px,-80px); opacity:0; }} }}
+    @keyframes spb {{ from {{ transform:translate(0,0); opacity:1; }} to {{ transform:translate(4px,-95px); opacity:0; }} }}
+    @keyframes spc {{ from {{ transform:translate(0,0); opacity:1; }} to {{ transform:translate(18px,-70px); opacity:0; }} }}
+    .smoke {{ transform-box:fill-box; transform-origin:50% 100%; animation:smoke 6.6s ease-out infinite; }}
+    @keyframes smoke {{ 0% {{ opacity:0; transform:translate(0,0) scale(.6); }} 25% {{ opacity:1; }} 100% {{ opacity:0; transform:translate(22px,-60px) scale(1.7); }} }}
+    .gl {{ animation:gl ease-in-out infinite; }}
+    @keyframes gl {{ 0%,100% {{ opacity:.12; }} 50% {{ opacity:.9; }} }}
+    .fly {{ animation:fly ease-in-out infinite; }}
+    @keyframes fly {{ 0%,100% {{ transform:translate(0,0); opacity:0; }} 25% {{ opacity:.95; }} 50% {{ transform:translate(14px,-10px); opacity:.15; }} 75% {{ transform:translate(-8px,-18px); opacity:.9; }} }}
+    .mist {{ animation:mist ease-in-out infinite alternate; }}
+    @keyframes mist {{ from {{ transform:translateX(-50px); }} to {{ transform:translateX(50px); }} }}
+    .shoot {{ animation:shoot 13s ease-in infinite; }}
+    @keyframes shoot {{ 0%,88% {{ transform:translate(0,0); opacity:0; }} 89% {{ opacity:1; }} 95%,100% {{ transform:translate(-300px,130px); opacity:0; }} }}
+    .k  {{ font-family:{MONO}; font-size:10.5px; letter-spacing:3.2px; fill:{MINT}; fill-opacity:.7; }}
+    {extra}
+    {reduced(".tw,.rp,.sway,.grow,.in,.fade,.glow,.spa,.spb,.spc,.smoke,.gl,.fly,.mist,.shoot,.sat,.cue,.draw,.ign,.bob,.ar,.breathe,.hair,.steam,pattern",
+             ".spa,.spb,.spc,.fly,.shoot,.sat,.smoke { opacity:0; } .draw { stroke-dashoffset:0 !important; }")}"""
+
+
+def edge_trees(rnd, W, H, y, hmin, hmax, gap, fill="#02050A"):
+    rid = ridge(rnd, -20, W + 20, y, 3, [], iters=6)
+    return f'<path d="{fill_under(rid, H + 2)}" fill="{fill}"/><path d="{treeline(rnd, rid, hmin, hmax, gap, sink=4)}" fill="{fill}"/>'
+
+
+# ─── hero ────────────────────────────────────────────────────────────────────
+def night_hero():
+    rnd = random.Random(4711)
+    W, H, HZ = 1000, 540, 372
+
+    in_text = lambda x, y: 150 < x < 850 and 50 < y < 195
+    stars = starfield(rnd, W, 0, HZ - 30, 300, avoid=in_text)
+
+    # milky way, rising left to right behind everything
+    slope, c0 = -.27, 262
+    my = lambda x: c0 + slope * x
+    band = [(x, my(x) + rnd.gauss(0, 22), rnd.choice([.3, .35, .45, .55])) for x in (rnd.uniform(-20, W + 20) for _ in range(900))]
+    band = [p for p in band if 0 < p[1] < HZ - 40]
+    milky = "".join(f'<path fill="#fff" fill-opacity="{o}" d="{dots(band[i::3])}"/>' for i, o in enumerate([.25, .4, .6]))
+    lane = smooth([(x, my(x) + 5 + 7 * math.sin(x / 70)) for x in range(-20, W + 40, 40)])
+    ang = math.degrees(math.atan(slope))
+
+    brights = "".join(bright_star(x, y, s, c, d, dl) for x, y, s, c, d, dl in [
+        (64, 52, 1.1, FROST, 4.2, 1), (236, 26, .8, "#FFE9C7", 5.5, 3), (118, 228, .7, FROST, 3.6, 2),
+        (930, 214, .9, "#E2DAFF", 4.8, 0), (744, 26, .75, FROST, 6, 4), (40, 300, .6, "#FFE9C7", 3.4, 1.5)])
+
+    # three curtains: a high violet one, the main storm, a low bright fold
+    c2 = aurora(rnd, -40, W + 40, lambda x: 196 + 18 * math.sin(x / 190 + 2.2) + 7 * math.sin(x / 71),
+                lambda x: 70 + 60 * math.sin(x / 230 + 1) ** 2, 4.2, "ray2")
+    c1 = aurora(rnd, -40, W + 40, lambda x: 238 + 24 * math.sin(x / 160 + .6) + 9 * math.sin(x / 57 + 1.3),
+                lambda x: 80 + 100 * math.sin(x / 210 + 2) ** 2, 3, "ray1")
+    c3 = aurora(rnd, 480, W + 40, lambda x: 268 + 14 * math.sin(x / 90 + .4),
+                lambda x: 40 + 40 * math.sin(x / 120) ** 2, 3, "ray1")
+    curtains = "".join(
+        f'<g class="grow" style="animation-delay:{dl}s"><g class="sway" mask="url(#am)" opacity="{op}" style="animation-duration:{dur}s">{c}</g></g>'
+        for c, op, dur, dl in [(c2, .6, 21, .4), (c1, 1, 16, 0), (c3, .85, 12, .9)])
+
+    # mountains
+    peaks = [(150, 74, 230), (460, 100, 260), (780, 66, 210), (950, 82, 200)]
+    M1 = ridge(rnd, -20, W + 20, 322, 10, peaks, iters=7)
+    snow = snowcap(rnd, M1, 250, (5, 16))
+    M2 = ridge(rnd, -20, W + 20, 344, 6, [(300, 46, 240), (690, 38, 230)], iters=6)
+    M3 = ridge(rnd, -20, W + 20, HZ + 1, 2, [], iters=4)
+    t2 = treeline(rnd, M2, 8, 20, 5, sink=3)
+    t3 = treeline(rnd, M3, 14, 40, 6, sink=3)
+
+    # the bank in front: camp, fire, someone on a log, an upturned canoe
+    bank = [(-20, 414), (60, 411), (150, 414), (240, 419), (320, 426), (390, 440), (440, 462), (478, 496), (500, 545)]
+    bank_d = smooth(bank) + f" L-20 {H + 5}Z"
+    TX, FX, PX = 132, 224, 266
+    FY = yat(bank, FX) + 1
+    TY, PY = yat(bank, TX) + 1, yat(bank, PX) + 1
+    fire = campfire(rnd, FX, FY, 1.05)
+    tufts = "".join(f'<path d="M{n(x)} {n(yat(bank, x) + 1)} l{n(rnd.uniform(-3, 3))} {n(-rnd.uniform(4, 9))}" />'
+                    for x in (rnd.uniform(20, 470) for _ in range(70)) if abs(x - FX) > 20)
+    cy = yat(bank, 368)
+    canoe = (f'<path d="M330 {n(cy - 2)} C350 {n(cy - 15)} 392 {n(cy - 13)} 412 {n(cy + 4)} L408 {n(cy + 7)} '
+             f'C388 {n(cy - 3)} 352 {n(cy - 4)} 333 {n(cy + 2)}Z" fill="#160C08"/>'
+             f'<path d="M330 {n(cy - 2)} C350 {n(cy - 15)} 392 {n(cy - 13)} 412 {n(cy + 4)}" fill="none" stroke="#FF9D5C" stroke-opacity=".45" stroke-width="1.2"/>')
+    person = f"""<g transform="translate({PX} {n(PY)}) scale(1.12)">
+      <!-- log -->
+      <rect x="-17" y="-8.5" width="36" height="8.5" rx="4.2" fill="#1A0E08"/>
+      <ellipse cx="-16" cy="-4.2" rx="2.2" ry="4" fill="#3A1E10"/>
+      <path d="M-15 -8.3 h30" stroke="#FF9D5C" stroke-opacity=".35" stroke-width=".7"/>
+      <!-- legs, knees drawn up -->
+      <path d="M0 -9 L4 -12.5 C9 -15.5 13 -20.5 15.8 -19.4 C17.8 -18.6 18 -16.4 17.4 -14.2 L18 -2.2 L21.4 -1.6 C22.6 -1.1 22.4 0 21.2 0 L13.8 0 L14 -12.2 C10.4 -10.6 6 -8.6 2 -7.4Z" fill="url(#skin)"/>
+      <g class="breathe">
+        <!-- hoodie, leaning back a touch -->
+        <path d="M-4.4 -9 C-6.6 -16 -6.8 -25 -3.6 -31 C-1.4 -33.4 3 -33.8 5.2 -31.6 C6.8 -27 7.4 -22 6.8 -17 L7.2 -12 L0 -8.6Z" fill="url(#skin)"/>
+        <path d="M-3.6 -31 C-5.6 -32.2 -5.4 -35.6 -2.6 -35.6 C-1.6 -34 -.2 -33.4 1 -33.2Z" fill="#120A08"/>
+        <!-- arm resting on the knee, mug in hand -->
+        <path d="M-.6 -28.6 C1.4 -24 4.4 -20.4 9.4 -19.8 C12.4 -19.8 15 -21.6 16.8 -23.4" fill="none" stroke="url(#skin)" stroke-width="3.6" stroke-linecap="round"/>
+        <circle cx="17.2" cy="-23.6" r="1.6" fill="#2A1610"/>
+        <rect x="16.2" y="-28.2" width="4" height="4.6" rx=".8" fill="#5A3020"/>
+        <path d="M20.2 -27.2 q2 .4 0 2.6" fill="none" stroke="#5A3020" stroke-width=".8"/>
+        <path d="M16.4 -28.2 h3.6" stroke="#FFB27A" stroke-opacity=".5" stroke-width=".5"/>
+        <path class="steam" d="M17.6 -29.5 q-1.4 -2.4 0 -4.6 q1.4 -2.2 0 -4.4" fill="none" stroke="#E8EEF6" stroke-opacity=".35" stroke-width=".6" stroke-linecap="round"/>
+        <path class="steam" style="animation-delay:-1.6s" d="M19 -29.5 q1.2 -2.2 0 -4.2 q-1.2 -2 0 -4" fill="none" stroke="#E8EEF6" stroke-opacity=".3" stroke-width=".5" stroke-linecap="round"/>
+        <!-- head, tilted up toward the aurora -->
+        <g transform="rotate(-16 2 -34)">
+          <path d="M.6 -33 L.8 -35.2 C-2.4 -36.4 -3 -42 -1 -45 C1 -48.2 6 -48.6 7.6 -45.2 L8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6 C7.1 -36.2 5.2 -36 4.2 -35.6 L4.2 -33Z" fill="url(#skin)"/>
+          <path d="M8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6" fill="none" stroke="#FFB27A" stroke-opacity=".18" stroke-width=".4"/>
+          <path d="M6.6 -42.6 q.8 .5 1.4 .2" fill="none" stroke="#05070C" stroke-width=".5" stroke-linecap="round"/>
+          <ellipse cx="1.9" cy="-40.6" rx=".95" ry="1.45" fill="#3A1E14"/>
+          <g class="hair">
+            <path d="M-3.1 -40.6 C-4.2 -45.2 -2 -49.8 3.2 -49.8 C6.8 -49.8 8.9 -47.6 8.6 -44.8 C7.3 -46.1 5.8 -45.9 4.3 -46.7 C3.6 -45 2 -44.2 .9 -43.2 C.6 -41.4 -.4 -39.4 -1.7 -37.8 C-2.6 -38.4 -3.1 -39.6 -3.1 -40.6Z" fill="#0B0605"/>
+            <path d="M-1.2 -48 q2.4 -2.6 6 -2 q2.8 .6 3.6 2.6 M-3 -43 q-1.2 -1 -.8 -3" fill="none" stroke="#0B0605" stroke-width="1.1" stroke-linecap="round"/>
+          </g>
+          <path d="M-3.1 -40.6 C-4.2 -45.2 -2 -49.8 3.2 -49.8" fill="none" stroke="#FF9D5C" stroke-opacity=".6" stroke-width=".55"/>
+        </g>
+        <!-- firelight along the back -->
+        <path d="M-4.4 -9 C-6.6 -16 -6.8 -25 -3.6 -31" fill="none" stroke="#FF9D5C" stroke-opacity=".6" stroke-width=".6"/>
+      </g>
+    </g>"""
+    tent = f"""<g transform="translate({TX} {n(TY)})">
+      <path d="M-40 0 L0 -54 L40 0Z" fill="url(#tent)" class="glow"/>
+      <path d="M0 -54 L-7 0 h14z" fill="#6E2810" fill-opacity=".85"/>
+      <ellipse cx="0" cy="-10" rx="5" ry="8" fill="#FFE8B0" fill-opacity=".55" filter="url(#ablur2)"/>
+      <path d="M-40 0 L0 -54 L40 0" fill="none" stroke="#2A140A" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M0 -54 l-5 -6 M0 -54 l5 -6" stroke="#2A140A" stroke-width="1.2"/>
+      <path d="M-20 -27 L-52 2 M20 -27 L52 2" stroke="#FFCF94" stroke-opacity=".25" stroke-width=".6"/>
+    </g>"""
+    fg = "".join(f'<path d="{fir(rnd, x, H + 20, h, .32)}"/>' for x, h in [(-30, 470), (40, 320), (930, 250), (978, 410), (1032, 500), (884, 150)])
+    rocks = "M760 545 C770 520 800 512 826 522 C846 506 880 508 902 524 C930 516 960 520 990 534 L1010 545Z"
+    flies = motes(rnd, 26, 300, 900, HZ - 40, H - 30, "#E4FF9A", 1.4, cls="fly")
+
+    # water: fire glints along the bank, a column of moonlight
+    fire_gl = "".join(
+        f'<rect class="gl" x="{n(rnd.uniform(380, 470) + i * 6)}" y="{n(HZ + 22 + i * 7)}" width="{n(rnd.uniform(10, 30))}" height="1.4" rx=".7" fill="#FFB866" '
+        f'style="animation-duration:{rnd.uniform(1.2, 2.4):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>' for i in range(9))
+    MX, MYY = 892, 66
+    moon_gl = "".join(
+        f'<rect class="gl" x="{n(MX - w / 2 + rnd.uniform(-4, 4))}" y="{n(HZ + 4 + i * 5)}" width="{n(w)}" height="1.3" rx=".6" fill="{FROST}" '
+        f'style="animation-duration:{rnd.uniform(1.6, 3.2):.1f}s;animation-delay:-{rnd.uniform(0, 3):.1f}s"/>'
+        for i, w in enumerate([24, 16, 26, 12, 18, 10, 14, 7, 10, 5, 8, 4, 6, 3]))
+    mist = "".join(f'<ellipse class="mist" cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" fill="url(#mistg)" style="animation-duration:{d}s;animation-delay:-{dl}s"/>'
+                   for x, y, rx, ry, d, dl in [(230, HZ - 6, 260, 14, 34, 0), (640, HZ - 2, 320, 12, 41, 12), (880, HZ + 8, 220, 10, 29, 6), (500, HZ + 14, 280, 8, 37, 20)])
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="I am Aditya Padmarajan. Software developer at STEMCELL Technologies in Vancouver, BC. An aurora over an alpine lake, a campfire, and someone watching it.">
+  <title>I am Aditya Padmarajan</title>
+  <defs>
+    {sky_grad("hsky", 0, HZ)}
+    {aurora_defs()}
+    <radialGradient id="milk" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#D8D0FF" stop-opacity=".22"/><stop offset=".5" stop-color="#9F96E8" stop-opacity=".08"/><stop offset="1" stop-color="#9F96E8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="milk2" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFF0DC" stop-opacity=".16"/><stop offset="1" stop-color="#FFF0DC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="lane" x="-5%" y="-50%" width="110%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+    <radialGradient id="halo"><stop offset="0" stop-color="#FFF3DC" stop-opacity=".35"/><stop offset=".25" stop-color="#DDEBFF" stop-opacity=".1"/><stop offset="1" stop-color="#DDEBFF" stop-opacity="0"/></radialGradient>
+    <mask id="moonm"><circle r="14" fill="#fff"/><circle cx="6.5" cy="-4" r="12.5" fill="#000"/></mask>
+    <linearGradient id="mt1" x1="0" y1="210" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1A2D48"/><stop offset="1" stop-color="#0C1729"/></linearGradient>
+    <linearGradient id="snowg" x1="0" y1="210" x2="0" y2="262" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E9F7FF" stop-opacity=".7"/><stop offset="1" stop-color="#9FE8D0" stop-opacity=".25"/></linearGradient>
+    <radialGradient id="mistg"><stop offset="0" stop-color="#CFE8F5" stop-opacity=".13"/><stop offset="1" stop-color="#CFE8F5" stop-opacity="0"/></radialGradient>
+    <linearGradient id="lake" x1="0" y1="{HZ}" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0E2638" stop-opacity=".05"/><stop offset=".5" stop-color="#06111D" stop-opacity=".5"/><stop offset="1" stop-color="#02060C" stop-opacity=".95"/>
+    </linearGradient>
+    {ripple_mask("rm", H, W, HZ, 4, 2.6, "#5a5a5a")}
+    <clipPath id="lc"><rect y="{HZ}" width="{W}" height="{H - HZ}"/></clipPath>
+    <radialGradient id="fireg" cx="{FX}" cy="{n(FY - 8)}" r="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB25A" stop-opacity=".5"/><stop offset=".3" stop-color="#F2794A" stop-opacity=".16"/><stop offset="1" stop-color="#F2794A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="{FX}" cy="{n(FY)}" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB25A" stop-opacity=".9"/><stop offset="1" stop-color="#FFB25A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFCB85"/><stop offset="1" stop-color="#C9632F"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4A2414"/><stop offset=".45" stop-color="#140A08"/><stop offset="1" stop-color="#05070C"/></linearGradient>
+    <linearGradient id="shootg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <radialGradient id="scrim" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#01030A" stop-opacity=".62"/><stop offset=".6" stop-color="#01030A" stop-opacity=".3"/><stop offset="1" stop-color="#01030A" stop-opacity="0"/></radialGradient>
+    <radialGradient id="vig" cx="50%" cy="45%" r="75%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>
+    <linearGradient id="nameg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0">
+      <stop offset="0" stop-color="{MINT}"/><stop offset=".45" stop-color="{MINT}"/><stop offset=".5" stop-color="#FFFFFF"/><stop offset=".55" stop-color="{MINT}"/><stop offset="1" stop-color="{MINT}"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-1000 0;-1000 0;1000 0" keyTimes="0;.45;1" dur="8s" begin="2.5s" repeatCount="indefinite"/>
+    </linearGradient>
+    <filter id="tglow" x="-10%" y="-60%" width="120%" height="220%"><feGaussianBlur stdDeviation="7"/></filter>
+    <clipPath id="frame"><rect width="{W}" height="{H}" rx="20"/></clipPath>
+  </defs>
+  <style>{night_css(f'''
+    .t {{ font-family:{SERIF}; font-size:58px; fill:{CREAM}; letter-spacing:-.6px; }}
+    .s {{ font-family:{MONO}; font-size:11.5px; letter-spacing:4.2px; fill:{CREAM}; fill-opacity:.62; }}
+    .sat {{ animation:sat 75s linear infinite; }}
+    .breathe {{ transform-box:fill-box; transform-origin:50% 100%; animation:breathe 5.5s ease-in-out infinite; }}
+    @keyframes breathe {{ 0%,100% {{ transform:scale(1,1); }} 50% {{ transform:scale(1.008,1.018); }} }}
+    .hair {{ transform-box:fill-box; transform-origin:80% 80%; animation:hair 7s ease-in-out infinite alternate; }}
+    @keyframes hair {{ from {{ transform:rotate(-1.5deg); }} to {{ transform:rotate(1.5deg); }} }}
+    .steam {{ transform-box:fill-box; transform-origin:50% 100%; animation:steam 3.2s ease-out infinite; }}
+    @keyframes steam {{ 0% {{ opacity:0; transform:translateY(1px) scale(.8); }} 30% {{ opacity:1; }} 100% {{ opacity:0; transform:translateY(-5px) scale(1.2); }} }}
+    @keyframes sat {{ 0% {{ transform:translate(0,0); opacity:0; }} 4% {{ opacity:.85; }} 55% {{ transform:translate(760px,120px); opacity:.85; }} 56%,100% {{ transform:translate(760px,120px); opacity:0; }} }}''')}
+  </style>
+  <g clip-path="url(#frame)">
+    <g id="sky">
+      <rect width="{W}" height="{HZ + 2}" fill="url(#hsky)"/>
+      <g class="fade">
+        <ellipse cx="500" cy="{n(my(500))}" rx="680" ry="78" fill="url(#milk)" transform="rotate({ang:.1f} 500 {n(my(500))})"/>
+        <ellipse cx="420" cy="{n(my(420))}" rx="420" ry="26" fill="url(#milk2)" transform="rotate({ang:.1f} 420 {n(my(420))})"/>
+        {milky}
+        <path d="{lane}" fill="none" stroke="#01030A" stroke-opacity=".5" stroke-width="12" filter="url(#lane)"/>
+        {stars}
+        {brights}
+      </g>
+      <g transform="translate({MX} {MYY})">
+        <circle r="110" fill="url(#halo)"/>
+        <circle r="14" fill="#FFF3DC" fill-opacity=".07"/>
+        <circle r="14" fill="#FFF5E4" mask="url(#moonm)"/>
+      </g>
+      {curtains}
+      <path d="{fill_under(M1, HZ + 30)}" fill="url(#mt1)"/>
+      <path d="{snow}" fill="url(#snowg)"/>
+      <path d="{line_of(M1)}" fill="none" stroke="{AURORA}" stroke-opacity=".3" stroke-width="1.1"/>
+      <path d="{fill_under(M2, HZ + 30)}" fill="#0A1526"/><path d="{t2}" fill="#0A1526"/>
+      {mist}
+      <path d="{fill_under(M3, HZ + 30)}" fill="#050B14"/><path d="{t3}" fill="#050B14"/>
+    </g>
+
+    <g class="shoot"><path d="M760 40 l130 -58" stroke="url(#shootg)" stroke-width="1.4" transform="rotate(180 825 11)"/></g>
+    <g class="shoot" style="animation-duration:19s;animation-delay:-7s"><path d="M330 34 l96 -42" stroke="url(#shootg)" stroke-width="1.1" transform="rotate(180 378 13)"/></g>
+    <circle class="sat" cx="60" cy="24" r=".9" fill="#fff"/>
+
+    <!-- the lake holds all of it, broken by ripples -->
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="#04101B"/>
+    <g clip-path="url(#lc)" mask="url(#rm)" opacity=".8">
+      <use xlink:href="#sky" href="#sky" transform="matrix(1 0 0 -1 0 {2 * HZ})"/>
+    </g>
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="url(#lake)"/>
+    <rect y="{HZ}" width="{W}" height="1" fill="#BFF5E2" fill-opacity=".18"/>
+    <g>{moon_gl}</g>
+    <g>{fire_gl}</g>
+
+    <!-- camp -->
+    <rect class="glow" width="{W}" height="{H}" fill="url(#fireg)"/>
+    <path d="{bank_d}" fill="#03070D"/>
+    <path d="{smooth(bank)}" fill="none" stroke="url(#rim)" stroke-width="1.6"/>
+    <g stroke="#0B0705" stroke-width="1.1" stroke-linecap="round">{tufts}</g>
+    {canoe}
+    {tent}
+    {fire}
+    {person}
+    {flies}
+    <path d="{rocks}" fill="#02050A"/>
+    <g fill="#010307">{fg}</g>
+
+    <!-- name -->
+    <ellipse cx="500" cy="134" rx="400" ry="92" fill="url(#scrim)"/>
+    <g class="in" style="animation-delay:.3s"><text class="k" x="500" y="86" text-anchor="middle">22:47  ·  49.28° N  123.12° W  ·  KP 6, CLEAR SKIES</text></g>
+    <g class="in" style="animation-delay:.9s">
+      <text class="t" x="500" y="146" text-anchor="middle" fill="{AURORA}" style="fill:{AURORA};fill-opacity:.35" filter="url(#tglow)">I am <tspan font-style="italic">Aditya Padmarajan</tspan>.</text>
+      <text class="t" x="500" y="146" text-anchor="middle">I am <tspan font-style="italic" fill="url(#nameg)" style="fill:url(#nameg)">Aditya Padmarajan</tspan>.</text>
+    </g>
+    <g class="in" style="animation-delay:1.6s"><text class="s" x="500" y="182" text-anchor="middle">SOFTWARE DEVELOPER  ·  STEMCELL TECHNOLOGIES  ·  VANCOUVER, BC</text></g>
+
+    <rect width="{W}" height="{H}" fill="url(#vig)"/>
+    {frame(W, H, 20, AURORA, ".22")}
+  </g>
+</svg>
+"""
+
+
+# ─── field notes as a constellation ─────────────────────────────────────────
+def night_notes():
+    rnd = random.Random(2251)
+    W, H = 1000, 470
+    CX, CY = 772, 214
+
+    rows = [("NOW",     "Software Developer at STEMCELL Technologies"),
+            ("STUDIED", "B.Sc. Computer Science, University of Victoria"),
+            ("BASED",   "Vancouver, British Columbia"),
+            ("BUILT",   "SpideyIRL — 3rd place, QNX track, Hack the North 2026"),
+            ("BUILT",   "Pulse — hackathon winner, Web Summit 2026")]
+    # star for each row (offset from chart centre), and its label
+    stars = [((8, -96), "STEMCELL", "end"), ((-128, 62), "UVIC", "start"), ((-58, -8), "YVR", "end"),
+             ((84, -18), "HTN ’26", "start"), ((132, 70), "PULSE ’26", "start")]
+    extra = [(38, 42), (-28, 92)]
+    pos = [(CX + dx, CY + dy) for (dx, dy), _, _ in stars] + [(CX + dx, CY + dy) for dx, dy in extra]
+    # the asterism: a peak with a lake below it
+    edges = [(1, 2), (2, 0), (0, 3), (3, 4), (3, 5), (5, 6), (6, 2)]
+    T0, DT = .9, .55
+    order = [1, 2, 0, 3, 4]               # the order stars light: where it started → now
+    when = {r: T0 + i * DT for i, r in enumerate(order)}
+    when[5], when[6] = when[3] + .2, when[4] + .25
+
+    lines = []
+    for a, b in edges:
+        (x1, y1), (x2, y2) = pos[a], pos[b]
+        L = math.hypot(x2 - x1, y2 - y1)
+        lines.append(f'<path class="draw" d="M{n(x1)} {n(y1)} L{n(x2)} {n(y2)}" stroke-dasharray="{L:.1f}" stroke-dashoffset="{L:.1f}" '
+                     f'style="animation-delay:{max(when[a], when[b]) - .3:.2f}s"/>')
+    starsvg = []
+    for i, (x, y) in enumerate(pos):
+        big = i < 5
+        starsvg.append(f'<g class="ign" style="animation-delay:{when[i]:.2f}s"><g transform="translate({n(x)} {n(y)})">'
+                       f'<circle r="{14 if big else 8}" fill="url(#bstar)"/>'
+                       + (f'<path d="M-9 0H9M0 -9V9" stroke="{FROST}" stroke-width=".5" stroke-opacity=".8"/>' if big else "")
+                       + f'<circle r="{2.4 if i == 0 else 1.8 if big else 1.2}" fill="{GOLD if i == 0 else "#fff"}"/></g></g>')
+        if big:
+            _, lab, anc = stars[i]
+            dx = -12 if anc == "end" else 12
+            starsvg.append(f'<g class="ign" style="animation-delay:{when[i] + .2:.2f}s"><text class="lab" x="{n(x + dx)}" y="{n(y - 8)}" text-anchor="{anc}">{lab}</text></g>')
+
+    rings = "".join(f'<circle cx="{CX}" cy="{CY}" r="{r}" stroke-dasharray="{da}"/>' for r, da in [(60, "2 5"), (115, "2 5"), (170, "none")])
+    spokes = "".join(f'<path d="M{n(CX + 60 * math.cos(math.radians(a)))} {n(CY + 60 * math.sin(math.radians(a)))} L{n(CX + 170 * math.cos(math.radians(a)))} {n(CY + 170 * math.sin(math.radians(a)))}"/>'
+                     for a in range(0, 360, 30))
+    ticks = "".join(f'<path d="M{n(CX + 170 * math.cos(math.radians(a)))} {n(CY + 170 * math.sin(math.radians(a)))} '
+                    f'L{n(CX + (163 if a % 15 else 158) * math.cos(math.radians(a)))} {n(CY + (163 if a % 15 else 158) * math.sin(math.radians(a)))}"/>'
+                    for a in range(0, 360, 5))
+    cards = "".join(f'<text class="cd" x="{n(CX + 182 * math.cos(math.radians(a)))}" y="{n(CY + 182 * math.sin(math.radians(a)) + 3.5)}" text-anchor="middle">{c}</text>'
+                    for a, c in [(-90, "N"), (0, "E"), (90, "S"), (180, "W")])
+
+    row_svg = []
+    for i, (k, v) in enumerate(rows):
+        y = 176 + i * 50
+        star_i = i  # row i ↔ star i
+        d = when[star_i]
+        row_svg.append(f'<g class="in" style="animation-delay:{d - .1:.2f}s">'
+                       f'<path d="M62 {y - 4} l1.6 -4.4 l1.6 4.4 l4.4 1.6 l-4.4 1.6 l-1.6 4.4 l-1.6 -4.4 l-4.4 -1.6z" fill="{GOLD if i == 0 else FROST}"/>'
+                       f'<text class="lk" x="84" y="{y}">{k}</text>'
+                       f'<text class="lv" x="84" y="{y + 22}">{v}</text></g>')
+
+    sky = starfield(rnd, W, 0, H - 60, 220, avoid=lambda x, y: x < 540 and y > 60)
+    wisp = aurora(rnd, 380, W + 40, lambda x: 40 + 14 * math.sin(x / 120), lambda x: 30 + 30 * math.sin(x / 150) ** 2, 4, "ray2", glow=False)
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Field notes. Now: Software Developer at STEMCELL Technologies. Studied: B.Sc. Computer Science, University of Victoria. Based in Vancouver, British Columbia. Built SpideyIRL, 3rd place QNX track at Hack the North 2026, and Pulse, hackathon winner at Web Summit 2026.">
+  <title>Field notes — Aditya Padmarajan</title>
+  <defs>
+    <linearGradient id="nsk" x1="0" y1="0" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#040A1C"/><stop offset=".7" stop-color="#071228"/><stop offset="1" stop-color="#0C1F38"/>
+    </linearGradient>
+    {aurora_defs()}
+    <radialGradient id="chart" cx="{CX}" cy="{CY}" r="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6CF5BE" stop-opacity=".08"/><stop offset="1" stop-color="#6CF5BE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient>
+    <clipPath id="frame"><rect width="{W}" height="{H}" rx="20"/></clipPath>
+  </defs>
+  <style>{night_css(f'''
+    .h  {{ font-family:{SERIF}; font-size:38px; fill:{CREAM}; letter-spacing:-.4px; }}
+    .lk {{ font-family:{MONO}; font-size:10px; letter-spacing:3px; fill:{GOLD}; fill-opacity:.85; }}
+    .lv {{ font-family:{SERIF}; font-size:19.5px; fill:{CREAM}; fill-opacity:.94; }}
+    .lab {{ font-family:{MONO}; font-size:9.5px; letter-spacing:2.2px; fill:{MINT}; fill-opacity:.8; }}
+    .cd {{ font-family:{MONO}; font-size:10px; letter-spacing:1px; fill:{FROST}; fill-opacity:.35; }}
+    .cap {{ font-family:{MONO}; font-size:9.5px; letter-spacing:3px; fill:{FROST}; fill-opacity:.4; }}
+    .draw {{ animation:draw 1.4s {EASE} both; }}
+    @keyframes draw {{ to {{ stroke-dashoffset:0; }} }}
+    .ign {{ animation:ign 1.6s {EASE} both; }}
+    @keyframes ign {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
+    .rot {{ transform-origin:{CX}px {CY}px; animation:rot 240s linear infinite; }}
+    @keyframes rot {{ to {{ transform:rotate(360deg); }} }}''')}
+  </style>
+  <g clip-path="url(#frame)">
+    <rect width="{W}" height="{H}" fill="url(#nsk)"/>
+    <g opacity=".45" mask="url(#am)">{wisp}</g>
+    {sky}
+
+    <circle cx="{CX}" cy="{CY}" r="190" fill="url(#chart)"/>
+    <g class="rot" fill="none" stroke="{FROST}" stroke-opacity=".13" stroke-width=".8">{rings}{spokes}{ticks}</g>
+    {cards}
+    <g fill="none" stroke="{MINT}" stroke-opacity=".55" stroke-width="1" stroke-linecap="round">{''.join(lines)}</g>
+    {''.join(starsvg)}
+
+    <g class="in" style="animation-delay:.2s"><text class="k" x="58" y="78">FIELD NOTES  ·  22:51  ·  BY FIRELIGHT</text></g>
+    <g class="in" style="animation-delay:.45s"><text class="h" x="56" y="126">Written in the <tspan font-style="italic" fill="{MINT}">stars</tspan></text></g>
+    {''.join(row_svg)}
+
+    {edge_trees(rnd, W, H, H - 8, 12, 40, 7)}
+    <rect y="{H - 80}" width="{W}" height="80" fill="url(#fade)"/>
+    {frame(W, H, 20, AURORA, ".22")}
+  </g>
+</svg>
+"""
+
+
+# ─── link cards ──────────────────────────────────────────────────────────────
+def night_card(kind, label, target, num, idx):
+    rnd = random.Random(900 + idx)
+    W, H = 330, 150
+    p = f"c{idx}"
+    sky = starfield(rnd, W, 0, H - 30, 60, tw=.4)
+    if kind == "summit":
+        accent = GOLD
+        peak = f"M130 {H} L212 66 L232 80 L262 38 L292 70 L310 60 L350 {H}Z"
+        cap = "M262 38 L250 58 L257 55 L263 63 L271 54 L280 61 L292 70 Z"
+        scene = f"""
+    <g transform="translate(306 26)"><circle r="60" fill="url(#{p}h)"/><circle r="10" fill="#FFF3DC" fill-opacity=".07"/><circle r="10" fill="#FFF5E4" mask="url(#{p}m)"/></g>
+    <path d="M90 {H} L176 92 L204 104 L236 84 L290 110 L350 96 L350 {H}Z" fill="#14233A"/>
+    <path d="{peak}" fill="#0E1A2E"/>
+    <path d="{cap}" fill="#E9F7FF" fill-opacity=".65"/>
+    <path d="M262 38 v-14" stroke="{CREAM}" stroke-width=".9"/>
+    <path fill="{EMBER}"><animate attributeName="d" dur="1.3s" repeatCount="indefinite"
+      values="M262 24 q5 1 10 0 q-1 3 0 6 q-5 1 -10 0z;M262 24 q5 -2 10 1 q-1 3 0 6 q-5 -2 -10 -1z;M262 24 q5 1 10 0 q-1 3 0 6 q-5 1 -10 0z"/></path>"""
+        defs = (f'<radialGradient id="{p}h"><stop offset="0" stop-color="#FFE9C7" stop-opacity=".35"/><stop offset="1" stop-color="#FFE9C7" stop-opacity="0"/></radialGradient>'
+                f'<mask id="{p}m"><circle r="10" fill="#fff"/><circle cx="4.5" cy="-3" r="9" fill="#000"/></mask>')
+    elif kind == "forest":
+        accent = AURORA
+        cur = aurora(rnd, 120, W + 20, lambda x: 92 + 10 * math.sin(x / 40), lambda x: 40 + 30 * math.sin(x / 60) ** 2, 2.6, "ray1", glow=False)
+        back = "".join(f'<path d="{fir(rnd, x, H + 4, h, .34)}"/>' for x, h in [(170, 60), (196, 76), (222, 66), (250, 86), (278, 70), (306, 92), (334, 68)])
+        front = "".join(f'<path d="{fir(rnd, x, H + 4, h, .34)}"/>' for x, h in [(186, 96), (232, 122), (290, 136), (322, 108)])
+        scene = f"""
+    <g class="sway" mask="url(#am)" style="animation-duration:11s">{cur}</g>
+    <g fill="#0C1C26">{back}</g>
+    <g fill="#03080D">{front}</g>
+    {motes(rnd, 14, 160, 330, 60, 140, "#E4FF9A", 1.3, cls="fly")}"""
+        defs = aurora_defs()
+    else:  # lantern on the lake
+        accent = "#FFB866"
+        HZ = 104
+        gl = "".join(f'<rect class="gl" x="{n(268 - w / 2 + rnd.uniform(-3, 3))}" y="{n(HZ + 12 + i * 4.2)}" width="{n(w)}" height="1.3" rx=".6" fill="#FFB866" '
+                     f'style="animation-duration:{rnd.uniform(1.2, 2.4):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>'
+                     for i, w in enumerate([22, 16, 26, 12, 18, 8, 12, 5]))
+        rid = ridge(rnd, 100, W + 20, HZ, 2, [(220, 18, 80), (300, 26, 90)], iters=5)
+        scene = f"""
+    <path d="{fill_under(rid, HZ + 1)}" fill="#0B1626"/><path d="{treeline(rnd, rid, 5, 14, 5, sink=2)}" fill="#0B1626"/>
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="#050E19"/>
+    <rect y="{HZ}" width="{W}" height=".8" fill="{MINT}" fill-opacity=".15"/>
+    <circle cx="268" cy="{HZ - 4}" r="70" fill="url(#{p}g)" class="glow"/>
+    {gl}
+    <g class="bob">
+      <path d="M254 {HZ + 3} h28 l-4 6 h-20z" fill="#1A0E08"/>
+      <path d="M268 {HZ + 3} v-14" stroke="#2A140A" stroke-width="1.2"/>
+      <rect x="262" y="{HZ - 22}" width="12" height="13" rx="3" fill="#FFD08A" class="glow"/>
+      <path d="M261 {HZ - 22} h14 M262 {HZ - 9} h12" stroke="#2A140A" stroke-width="1.4"/>
+    </g>"""
+        defs = f'<radialGradient id="{p}g"><stop offset="0" stop-color="#FFB25A" stop-opacity=".55"/><stop offset=".35" stop-color="#F2794A" stop-opacity=".15"/><stop offset="1" stop-color="#F2794A" stop-opacity="0"/></radialGradient>'
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label} — {target}">
+  <title>{label} — {target}</title>
+  <defs>
+    {sky_grad(p + "s", 0, H)}
+    <radialGradient id="bstar"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    {defs}
+    <linearGradient id="{p}sc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#01030A" stop-opacity=".9"/><stop offset=".45" stop-color="#01030A" stop-opacity=".55"/><stop offset=".72" stop-color="#01030A" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="{p}c"><rect width="{W}" height="{H}" rx="16"/></clipPath>
+  </defs>
+  <style>{night_css(f'''
+    .lb {{ font-family:{SERIF}; font-size:31px; fill:{CREAM}; letter-spacing:-.3px; }}
+    .tx {{ font-family:{MONO}; font-size:11px; letter-spacing:.3px; fill:{CREAM}; fill-opacity:.62; }}
+    .tg {{ font-family:{MONO}; font-size:9.5px; letter-spacing:3px; fill:{accent}; }}
+    .ar {{ animation:ar 2.6s ease-in-out infinite; }}
+    @keyframes ar {{ 0%,100% {{ transform:translate(0,0); }} 50% {{ transform:translate(3px,0); }} }}
+    .bob {{ transform-box:fill-box; transform-origin:50% 100%; animation:bob 4.5s ease-in-out infinite; }}
+    @keyframes bob {{ 0%,100% {{ transform:translateY(0) rotate(-2.5deg); }} 50% {{ transform:translateY(2px) rotate(2.5deg); }} }}''')}
+  </style>
+  <g clip-path="url(#{p}c)">
+    <rect width="{W}" height="{H}" fill="url(#{p}s)"/>
+    {sky}
+    {scene}
+    <rect width="{W}" height="{H}" fill="url(#{p}sc)"/>
+    <text class="tg" x="24" y="36">{num}</text>
+    <text class="lb" x="22" y="84">{label}</text>
+    <g class="ar"><text class="tx" x="24" y="112">{target}  →</text></g>
+    <rect x="24" y="126" width="26" height="1.5" rx=".75" fill="{accent}" fill-opacity=".7"/>
+    {frame(W, H, 16, accent, ".28")}
+  </g>
+</svg>
+"""
+
+
+# ─── footer ──────────────────────────────────────────────────────────────────
+def night_footer():
+    rnd = random.Random(2359)
+    W, H, HZ = 1000, 230, 168
+    stars = starfield(rnd, W, 0, HZ - 20, 150, avoid=lambda x, y: 250 < x < 750 and 30 < y < 120)
+    wisp = aurora(rnd, -40, W + 40, lambda x: 130 + 12 * math.sin(x / 140 + 1), lambda x: 40 + 40 * math.sin(x / 180) ** 2, 4, "ray1", glow=False)
+    rid = ridge(rnd, -20, W + 20, HZ - 4, 4, [(160, 40, 200), (820, 34, 220)], iters=6)
+    trees = treeline(rnd, rid, 6, 18, 5, sink=2)
+    spit = smooth([(410, HZ + 6), (450, HZ + 1), (500, HZ - 1), (550, HZ + 1), (590, HZ + 6)]) + "Z"
+    FX, FY = 500, HZ
+    fire = campfire(rnd, FX, FY, .8, sparks=14)
+    gl = "".join(f'<rect class="gl" x="{n(FX - w / 2 + rnd.uniform(-4, 4))}" y="{n(HZ + 8 + i * 4.5)}" width="{n(w)}" height="1.3" rx=".6" fill="#FFB866" '
+                 f'style="animation-duration:{rnd.uniform(1.2, 2.4):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>'
+                 for i, w in enumerate([40, 30, 46, 22, 30, 14, 20, 8, 12, 5, 6, 3]))
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="The fire's still going. Pull up a log. Back to the top.">
+  <title>The fire's still going</title>
+  <defs>
+    {sky_grad("fsk", 0, HZ)}
+    {aurora_defs()}
+    <radialGradient id="fg" cx="{FX}" cy="{FY - 6}" r="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB25A" stop-opacity=".42"/><stop offset=".3" stop-color="#F2794A" stop-opacity=".12"/><stop offset="1" stop-color="#F2794A" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="frame"><rect width="{W}" height="{H}" rx="20"/></clipPath>
+  </defs>
+  <style>{night_css(f'''
+    .t {{ font-family:{SERIF}; font-size:28px; fill:{CREAM}; letter-spacing:-.3px; }}
+    .cue {{ animation:cue 2.4s ease-in-out infinite; }}
+    @keyframes cue {{ 0%,100% {{ transform:translateY(2px); opacity:.5; }} 50% {{ transform:translateY(-3px); opacity:1; }} }}''')}
+  </style>
+  <g clip-path="url(#frame)">
+    <rect width="{W}" height="{HZ + 2}" fill="url(#fsk)"/>
+    {stars}
+    <g opacity=".5" mask="url(#am)">{wisp}</g>
+    <path d="{fill_under(rid, HZ + 2)}" fill="#060D18"/><path d="{trees}" fill="#060D18"/>
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="#030810"/>
+    <rect y="{HZ}" width="{W}" height="1" fill="{MINT}" fill-opacity=".15"/>
+    <rect class="glow" width="{W}" height="{H}" fill="url(#fg)"/>
+    {gl}
+    <path d="{spit}" fill="#02050A"/>
+    {fire}
+
+    <text class="t" x="500" y="66" text-anchor="middle">The fire’s still going — <tspan font-style="italic" fill="{MINT}">pull up a log</tspan>.</text>
+    <text class="k" x="500" y="98" text-anchor="middle"></text>
+    {frame(W, H, 20, AURORA, ".22")}
+  </g>
+</svg>
+"""
+
+
 if __name__ == "__main__":
     print("Generating assets...")
+    write("night-hero.svg", night_hero())
+    write("night-notes.svg", night_notes())
+    for i, (fn, kind, label, target, num) in enumerate([
+        ("night-card-portfolio", "summit",  "Portfolio", "adityapadmarajan.com",        "01  ·  THE SUMMIT"),
+        ("night-card-linkedin",  "forest",  "LinkedIn",  "in/aditya-padmarajan",        "02  ·  THE TREELINE"),
+        ("night-card-email",     "lantern", "Email",     "aditya.padmarajan@gmail.com", "03  ·  A LIGHT ON THE LAKE"),
+    ]):
+        write(f"{fn}.svg", night_card(kind, label, target, num, i))
+    write("night-footer.svg", night_footer())
     write("banner.svg", banner())
     write("chapter-forest.svg", chapter_forest())
     write("identity.svg", identity())
