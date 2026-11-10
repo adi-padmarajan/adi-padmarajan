@@ -679,7 +679,7 @@ def chapter_forest():
     dust = motes(rnd, 30, 360, 980, 20, 210, "#FFF6DA", 1.3)
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Waypoint one, the old-growth: who I am">
-  <title>Waypoint 01 · The Old-Growth</title>
+  <title>I am Aditya Padmarajan</title>
   <defs>
     <linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0"   stop-color="#EAF1DC"/>
@@ -737,10 +737,10 @@ def chapter_forest():
     <g class="fern">{ferns}</g>
     <rect width="{W}" height="{H}" fill="url(#fscrim)"/>
 
-    <text class="k" x="56" y="84">WAYPOINT 01  —  10:40</text>
-    <text class="h" x="54" y="138">The <tspan font-style="italic" fill="#CDE6C4">Old-Growth</tspan></text>
-    <text class="s" x="56" y="172">Elevation 420 m  ·  who I am</text>
-    <g class="cue"><path d="M262 163 l5 5 l5 -5" fill="none" stroke="{GOLD}" stroke-width="1.4" stroke-linecap="round"/></g>
+    <text class="k" x="56" y="84"></text>
+    <text class="h" x="{W / 2}" y="138" text-anchor="middle">I am<tspan font-style="italic" fill="#CDE6C4"> Aditya Padmarajan</tspan></text>
+    <text class="s" x="56" y="172"></text>
+    <g class="cue"><path d="M{W / 2 - 5} 163 l5 5 l5 -5" fill="none" stroke="{GOLD}" stroke-width="1.4" stroke-linecap="round"/></g>
 
     {frame(W, H, 16, CREAM, ".14")}
   </g>
@@ -1372,11 +1372,10 @@ def camp():
     <g fill="#03070C">{fg}</g>
 
     <!-- sign-off -->
-    <text class="m" x="560" y="74" text-anchor="middle">22:47  ·  CAMP  ·  ALPINE LAKE  ·  ELEV. 1,640 m</text>
-    <text class="t" x="560" y="122" text-anchor="middle">Thanks for walking the <tspan font-style="italic" fill="#B9FBE0">trail</tspan>.</text>
-    <g class="cue"><path d="M{W - 238} {H - 26} l5 -5 l5 5" fill="none" stroke="{GOLD}" stroke-width="1.4" stroke-linecap="round"/></g>
-    <text class="up" x="{W - 64}" y="{H - 22}" text-anchor="end">RETURN TO TRAILHEAD</text>
-    <text class="m" x="96" y="{H - 22}" fill-opacity=".45">made in vancouver, bc</text>
+    <text class="m" x="560" y="74" text-anchor="middle"></text>
+    <text class="t" x="{W / 2}" y="80" text-anchor="middle">I am <tspan font-style="italic" fill="#B9FBE0">Aditya Padmarajan</tspan>.</text>
+
+    <text class="m" x="96" y="{H - 22}" fill-opacity=".45"></text>
 
     {frame(W, H, 18, AURORA, ".18")}
   </g>
