@@ -1779,7 +1779,7 @@ def night_hero():
       <text class="t" x="500" y="146" text-anchor="middle" fill="{AURORA}" style="fill:{AURORA};fill-opacity:.35" filter="url(#tglow)">I am <tspan font-style="italic">Aditya Padmarajan</tspan>.</text>
       <text class="t" x="500" y="146" text-anchor="middle">I am <tspan font-style="italic" fill="url(#nameg)" style="fill:url(#nameg)">Aditya Padmarajan</tspan>.</text>
     </g>
-    <g class="in" style="animation-delay:1.6s"><text class="s" x="500" y="182" text-anchor="middle">SOFTWARE DEVELOPER  ·  STEMCELL TECHNOLOGIES  ·  VANCOUVER, BC</text></g>
+    <g class="in" style="animation-delay:1.6s"><text class="s" x="500" y="182" text-anchor="middle">SOFTWARE Engineer ·  VANCOUVER, BC</text></g>
 
     <rect width="{W}" height="{H}" fill="url(#vig)"/>
     {frame(W, H, 20, AURORA, ".22")}
