@@ -211,7 +211,7 @@
       <text class="t" x="500" y="146" text-anchor="middle" fill="#6CF5BE" style="fill:#6CF5BE;fill-opacity:.35" filter="url(#tglow)">I am <tspan font-style="italic">Aditya Padmarajan</tspan>.</text>
       <text class="t" x="500" y="146" text-anchor="middle">I am <tspan font-style="italic" fill="url(#nameg)" style="fill:url(#nameg)">Aditya Padmarajan</tspan>.</text>
     </g>
-    <g class="in" style="animation-delay:1.6s"><text class="s" x="500" y="182" text-anchor="middle">SOFTWARE Engineer ·  VANCOUVER, BC</text></g>
+    <g class="in" style="animation-delay:1.6s"><text class="s" x="500" y="182" text-anchor="middle">SOFTWARE ENGINEER ·  VANCOUVER, BC</text></g>
 
     <rect width="1000" height="540" fill="url(#vig)"/>
     <rect x=".5" y=".5" width="999" height="539" rx="20" fill="none" stroke="#6CF5BE" stroke-opacity=".22"/>
