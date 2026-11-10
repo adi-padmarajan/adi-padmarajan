@@ -1264,8 +1264,8 @@ def camp():
     fg = "".join(f'<path d="{fir(rnd, x, b, h, .3)}"/>' for x, b, h in [(-24, H + 20, 300), (40, H + 20, 210), (968, H + 20, 260), (1020, H + 20, 330), (912, H + 20, 150)])
     shore = smooth([(-20, HZ + 2), (120, HZ + 6), (260, HZ + 3), (400, HZ + 2)]) + f" L400 {HZ} L-20 {HZ}Z"
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Camp at an alpine lake under the aurora. Thanks for walking the trail. Click to return to the trailhead.">
-  <title>22:47 · camp · thanks for walking the trail</title>
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="I am Aditya Padmarajan. A camp at an alpine lake under the aurora.">
+  <title>I am Aditya Padmarajan</title>
   <defs>
     <linearGradient id="nsky" x1="0" y1="0" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse">
       <stop offset="0"   stop-color="#03060F"/>
