@@ -1743,6 +1743,273 @@ def reflection_jpeg(box, scale, HZ, sky_stops, glow, layers, aurora_edge, seed):
     return _jpeg(out * .78, 74)
 
 
+# ─── camp: trees, fire, tent, the person by the fire ────────────────────────
+def spruce(rnd, x, base, h, w, view=(-1e9, 1e9, 1e9), rim_below=1e9):
+    """A subalpine fir / spruce as it reads against a bright sky: a thin
+    leader, whorls of branches that droop and turn up at the tips, needle
+    fringe hanging off every branch, and the odd gap where a limb is gone.
+    Returns (silhouette, rim on the right-hand tips, rim on the left-hand
+    tips): only the outermost sprays on a side catch the light, as they do."""
+    top, out, rims = base - h, [], {-1: [], 1: []}
+    tw = max(1.1, w * .032)
+    out.append(f"M{n(x - tw)} {n(base)}L{n(x - tw * .2)} {n(top + h * .05)}L{n(x + tw * .2)} {n(top + h * .05)}L{n(x + tw)} {n(base)}Z")
+    lean = rnd.uniform(-.012, .012) * h                       # trees are never quite plumb
+    cx = lambda y: x + lean * (1 - (y - top) / h) ** 2
+    out.append(f"M{n(cx(top) - .5)} {n(top + h * .06)}L{n(cx(top))} {n(top - h * .012)}L{n(cx(top) + .5)} {n(top + h * .06)}Z")
+    yy = top + h * .016
+    while yy < base - h * .03:
+        t = (yy - top) / h
+        prof = min(1, .05 + 1.08 * t ** .8) * (1 - .3 * max(0, t - .82) / .18)
+        for s in (-1, 1):
+            if t > .22 and rnd.random() < .07:
+                continue                                       # a missing limb lets the sky through
+            L0 = w / 2 * prof * rnd.uniform(.6, 1.18)
+            sprays = [(0, L0, 0)] + ([(L0 * rnd.uniform(.08, .3), L0 * rnd.uniform(.5, .8), rnd.uniform(-.12, .1))] if t > .12 and rnd.random() < .75 else [])
+            for off, L, tilt in sprays:
+                if L < 1.5:
+                    continue
+                bx = cx(yy) + s * (off - .8 + rnd.uniform(0, .5))   # rooted into the trunk, no seam
+                by = yy + off * (.1 + .35 * t)
+                droop = L * (-.08 + .5 * t + tilt) * rnd.uniform(.7, 1.25)   # high limbs reach up, low ones hang
+                up = L * rnd.uniform(.06, .16) * (.4 + t)                    # and every tip turns up
+                thu, ndl = .45 + h * .0016, .8 + L * .06
+                k = max(3, int(L / 7))
+                upper, lower = [], []
+                for i in range(k + 1):
+                    f = i / k
+                    px = bx + s * L * f
+                    py = by + droop * f ** 1.6 - up * f ** 4
+                    upper.append((px, py - thu * (1 - f) - (rnd.uniform(.2, .9) * ndl if i % 2 and i < k else 0)))
+                    if 0 < i < k:                              # hanging sprays: deep tufts between shallow notches
+                        lower.append((px - s * ndl * .4, py + L * .1 * (1 - f) + ndl * rnd.uniform(1.4, 3.2)))
+                        lower.append((px + s * ndl * .3, py + L * .08 * (1 - f) + ndl * rnd.uniform(.3, .9)))
+                xs_ = [p[0] for p in upper]
+                if max(xs_) < view[0] or min(xs_) > view[1] or by - thu * 3 > view[2]:
+                    continue                                   # entirely out of frame: skip the bytes
+                out.append("M" + "L".join(P(*p) for p in upper + lower[::-1] + [(bx, by + thu * 2)]) + "Z")
+                if off == 0 and L > .82 * w / 2 * prof and by < rim_below:   # an outer tip against the sky catches the light
+                    f0 = .62
+                    rim = [(bx + s * L * f, by + droop * f ** 1.6 - up * f ** 4 - thu * (1 - f) - .35) for f in (f0, .74, .87, 1)]
+                    rims[s].append("M" + "L".join(P(*p) for p in rim))
+        yy += h * (.009 + .016 * t) * rnd.uniform(.7, 1.3)
+    return "".join(out), "".join(rims[1]), "".join(rims[-1])
+
+
+def hero_fire(rnd, FX, FY, s=1.15):
+    """A real campfire: a ring of stones (the far ones lit full on, the near
+    ones only along their tops), crossed logs charred to embers at the ends,
+    a bed of coals breathing, layered flames with white-hot roots and red
+    tips that tear off as they rise, sparks on wandering paths, and smoke."""
+    o = []
+    P2 = lambda x, y: f"{n(FX + x * s)} {n(FY + y * s)}"
+    def stone(a, front):
+        rx, ry = rnd.uniform(3, 4.4), rnd.uniform(2, 3)
+        x, y = 17 * math.cos(a), 4.6 * math.sin(a) - 1
+        X, Y = FX + x * s, FY + y * s
+        body = (f'<ellipse cx="{n(X)}" cy="{n(Y - ry * s * .4)}" rx="{n(rx * s)}" ry="{n(ry * s)}" '
+                f'fill="url(#{"stF" if front else "stB"})" transform="rotate({rnd.uniform(-12, 12):.0f} {n(X)} {n(Y)})"/>')
+        if front:
+            body += (f'<path d="M{n(X - rx * s * .8)} {n(Y - ry * s * 1.05)} Q{n(X)} {n(Y - ry * s * 1.65)} {n(X + rx * s * .8)} {n(Y - ry * s * 1.05)}" '
+                     f'fill="none" stroke="#FF9A4A" stroke-opacity=".55" stroke-width="{n(.7 * s)}" stroke-linecap="round"/>')
+        return body
+    angs = [i / 11 * 2 * math.pi + rnd.uniform(-.12, .12) for i in range(11)]
+    back = [a for a in angs if math.sin(a) < 0]
+    front = sorted((a for a in angs if math.sin(a) >= 0), key=math.sin)
+    o += [stone(a, False) for a in back]
+    # glow and coal bed
+    o.append(f'<circle class="glow" cx="{n(FX)}" cy="{n(FY - 12 * s)}" r="{n(46 * s)}" fill="url(#fhalo)"/>')
+    o.append(f'<ellipse cx="{n(FX)}" cy="{n(FY - 1 * s)}" rx="{n(14 * s)}" ry="{n(3.6 * s)}" fill="url(#coalbed)"/>')
+    # logs, a loose teepee fallen in: bark, a hot underside, glowing cracks
+    for x0, y0, x1, y1 in [(-15, 1, 7, -10), (14, 1.5, -6, -11), (-3, 3, 4, -13), (-17, -1, 16, -2)]:
+        d = f"M{P2(x0, y0)} L{P2(x1, y1)}"
+        o.append(f'<path d="{d}" stroke="#1A0C06" stroke-width="{n(3.6 * s)}" stroke-linecap="round"/>')
+        o.append(f'<path d="{d}" stroke="#FF7A2A" stroke-opacity=".55" stroke-width="{n(1 * s)}" stroke-linecap="round" transform="translate({n(.5 * s)} {n(.9 * s)})"/>')
+        o.append(f'<path class="coal" d="{d}" stroke="#FFB04A" stroke-width="{n(.7 * s)}" stroke-dasharray="{n(1.2 * s)} {n(2.6 * s)}" '
+                 f'style="animation-duration:{rnd.uniform(1.4, 2.6):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>')
+        o.append(f'<circle class="coal" cx="{n(FX + x0 * s)}" cy="{n(FY + y0 * s)}" r="{n(1.5 * s)}" fill="#FF6A1F" '
+                 f'style="animation-duration:{rnd.uniform(1.2, 2.2):.1f}s"/>')
+    for _ in range(16):
+        a, r = rnd.uniform(0, 2 * math.pi), rnd.uniform(0, 1) ** .6
+        o.append(f'<circle class="coal" cx="{n(FX + 11 * r * math.cos(a) * s)}" cy="{n(FY + (2.6 * r * math.sin(a) - .6) * s)}" r="{n(rnd.uniform(.5, 1.3) * s)}" '
+                 f'fill="{rnd.choice(["#FFD27A", "#FFB347", "#FF7A2A", "#FF5A1A"])}" '
+                 f'style="animation-duration:{rnd.uniform(.9, 2.4):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>')
+    # flames: each tongue morphs through five shapes on its own clock
+    def tongue(dx, h, w, grad, dur):
+        shapes = []
+        for _ in range(4):
+            hh, lean = h * rnd.uniform(.72, 1.18), rnd.uniform(-.5, .5) * w
+            l1, l2 = rnd.uniform(-.35, .35) * w, rnd.uniform(-.35, .35) * w
+            x, y = dx, -1
+            shapes.append(f"M{P2(x - w, y)} C{P2(x - w * 1.18, y - hh * .2)} {P2(x - w * .62 + l1, y - hh * .33)} {P2(x - w * .42 + l1, y - hh * .5)} "
+                          f"C{P2(x - w * .26 + l1, y - hh * .68)} {P2(x + lean * .5, y - hh * .84)} {P2(x + lean, y - hh)} "
+                          f"C{P2(x + lean * .45 + w * .12, y - hh * .8)} {P2(x + w * .3 + l2, y - hh * .66)} {P2(x + w * .44 + l2, y - hh * .5)} "
+                          f"C{P2(x + w * .6 + l2, y - hh * .33)} {P2(x + w * 1.18, y - hh * .2)} {P2(x + w, y)}Z")
+        vals = ";".join(shapes + [shapes[0]])
+        spl = ";".join([".45 0 .55 1"] * 4)
+        return (f'<path fill="url(#{grad})" d="{shapes[0]}"><animate attributeName="d" dur="{dur:.2f}s" repeatCount="indefinite" '
+                f'calcMode="spline" keySplines="{spl}" values="{vals}"/></path>')
+    for dx, h, w in [(-8, 15, 4), (8, 17, 4.2), (-4, 26, 5.5), (4, 30, 5.6), (0, 37, 6.5)]:
+        o.append(tongue(dx, h, w, "flO", rnd.uniform(.9, 1.4)))
+    for dx, h, w in [(-5, 16, 3.6), (4, 21, 4), (0, 26, 4.4)]:
+        o.append(tongue(dx, h, w, "flM", rnd.uniform(.7, 1.1)))
+    for dx, h, w in [(-2, 10, 2.8), (2, 13, 3), (0, 8, 4.4)]:
+        o.append(tongue(dx, h, w, "flC", rnd.uniform(.5, .8)))
+    for i in range(4):                                     # tips that tear free and burn out
+        dx = rnd.uniform(-3, 3)
+        o.append(f'<path class="lick" style="animation-duration:{rnd.uniform(.8, 1.3):.2f}s;animation-delay:-{i * .3:.2f}s" fill="url(#flO)" '
+                 f'd="M{P2(dx - 1.6, -28)} Q{P2(dx - 1.4, -33)} {P2(dx + .4, -37)} Q{P2(dx + 1.4, -32)} {P2(dx + 1.6, -28)}Z"/>')
+    o += [stone(a, True) for a in front]
+    # sparks on wandering paths
+    for _ in range(26):
+        d = rnd.uniform(1.6, 3.6)
+        o.append(f'<circle class="sk{rnd.choice("123")}" cx="{n(FX + rnd.uniform(-6, 6) * s)}" cy="{n(FY - rnd.uniform(14, 24) * s)}" r="{n(rnd.uniform(.35, 1) * s)}" '
+                 f'fill="{rnd.choice(["#FFE2A0", "#FFC679", "#FF9A4A"])}" style="animation-duration:{d:.1f}s;animation-delay:-{rnd.uniform(0, d):.1f}s"/>')
+    for i in range(3):
+        o.append(f'<path class="smoke" d="M{P2(0, -40)} q{n(-7 * s)} {n(-14 * s)} 0 {n(-28 * s)} q{n(7 * s)} {n(-14 * s)} 0 {n(-28 * s)}" '
+                 f'fill="none" stroke="#B4BFD0" stroke-opacity=".06" stroke-width="{n(9 * s)}" stroke-linecap="round" filter="url(#ablur2)" '
+                 f'style="animation-delay:-{i * 2.2:.1f}s"/>')
+    return "".join(o)
+
+
+FIRE_DEFS = """<radialGradient id="fhalo"><stop offset="0" stop-color="#FFC266" stop-opacity=".42"/><stop offset=".35" stop-color="#FF8A3A" stop-opacity=".14"/><stop offset="1" stop-color="#FF6A1F" stop-opacity="0"/></radialGradient>
+    <radialGradient id="coalbed"><stop offset="0" stop-color="#FFE08A"/><stop offset=".35" stop-color="#FF8A2A"/><stop offset=".7" stop-color="#B8300C" stop-opacity=".9"/><stop offset="1" stop-color="#5A1404" stop-opacity="0"/></radialGradient>
+    <linearGradient id="flO" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFB547" stop-opacity=".95"/><stop offset=".4" stop-color="#FF7424" stop-opacity=".88"/><stop offset=".78" stop-color="#E0400F" stop-opacity=".55"/><stop offset="1" stop-color="#A3200A" stop-opacity="0"/></linearGradient>
+    <linearGradient id="flM" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFEBA8"/><stop offset=".5" stop-color="#FFB23E" stop-opacity=".92"/><stop offset="1" stop-color="#FF7424" stop-opacity="0"/></linearGradient>
+    <linearGradient id="flC" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFFDF2"/><stop offset=".6" stop-color="#FFF0BC" stop-opacity=".95"/><stop offset="1" stop-color="#FFD27A" stop-opacity="0"/></linearGradient>
+    <radialGradient id="stB" cx=".5" cy=".7" r=".7"><stop offset="0" stop-color="#C9733E"/><stop offset=".55" stop-color="#6B3218"/><stop offset="1" stop-color="#2A140A"/></radialGradient>
+    <radialGradient id="stF" cx=".5" cy=".15" r=".8"><stop offset="0" stop-color="#4A2614"/><stop offset=".5" stop-color="#1A0D08"/><stop offset="1" stop-color="#0A0605"/></radialGradient>"""
+
+FIRE_CSS = """
+    .coal { animation:coal ease-in-out infinite alternate; }
+    @keyframes coal { from { opacity:.45; } to { opacity:1; } }
+    .lick { transform-box:fill-box; transform-origin:50% 100%; animation:lick ease-out infinite; }
+    @keyframes lick { 0% { transform:translateY(4px) scale(.8); opacity:0; } 20% { opacity:.9; } 100% { transform:translateY(-16px) scale(.3); opacity:0; } }
+    .sk1,.sk2,.sk3 { animation:ease-out infinite; }
+    .sk1 { animation-name:sk1; } .sk2 { animation-name:sk2; } .sk3 { animation-name:sk3; }
+    @keyframes sk1 { 0% { transform:translate(0,0); opacity:1; } 35% { transform:translate(-6px,-30px); } 70% { transform:translate(2px,-62px); opacity:.7; } 100% { transform:translate(-8px,-92px); opacity:0; } }
+    @keyframes sk2 { 0% { transform:translate(0,0); opacity:1; } 30% { transform:translate(5px,-26px); } 65% { transform:translate(-3px,-58px); opacity:.75; } 100% { transform:translate(9px,-104px); opacity:0; } }
+    @keyframes sk3 { 0% { transform:translate(0,0); opacity:1; } 40% { transform:translate(9px,-34px); } 75% { transform:translate(16px,-60px); opacity:.6; } 100% { transform:translate(26px,-80px); opacity:0; } }"""
+
+
+def hero_tent(TX, TY):
+    """A dome tent lit from inside by a lantern: the fabric glows hottest
+    around the light and falls off to the hems, pole sleeves and panel
+    seams cross it, the vestibule door is rolled back on a brighter inside,
+    a pack leans against the wall as a soft shadow, and guylines run to
+    stakes. The side toward the fire picks up its flicker."""
+    return f"""<g transform="translate({TX} {n(TY)})">
+      <ellipse cx="6" cy="1.5" rx="66" ry="4" fill="#000" fill-opacity=".45"/>
+      <ellipse cx="34" cy="2" rx="34" ry="3.2" fill="url(#tspill)"/>
+      <path d="M-46 .5 C-45 -24 -30 -45 -4 -48 C16 -50 34 -38 41 -21 L64 .5Z" fill="url(#tglowf)"/>
+      <path d="M-46 .5 C-45 -24 -30 -45 -4 -48 C16 -50 34 -38 41 -21 L64 .5Z" fill="url(#tfire)" class="glow"/>
+      <!-- lantern hotspot and the shadow of a pack inside -->
+      <ellipse cx="-9" cy="-20" rx="13" ry="15" fill="url(#thot)"/>
+      <ellipse cx="-27" cy="-10" rx="13" ry="12" fill="url(#tpack)"/>
+      <!-- the vestibule is a single outer layer: dimmer, and the open door shows the bright inner tent -->
+      <path d="M30 -32 C36 -26 39 -23 41 -21 L64 .5 L26 .5Z" fill="#3A1406" fill-opacity=".38"/>
+      <path d="M28 .5 C27 -10 28 -22 31 -29 C35 -22 41 -12 47 .5Z" fill="url(#tdoor)"/>
+      <path d="M31 -29 C35 -22 41 -12 47 .5" fill="none" stroke="#5A1E08" stroke-width="1.1"/>
+      <path d="M28 .5 C27 -10 28 -22 31 -29" fill="none" stroke="#FFD9A0" stroke-opacity=".5" stroke-width=".5"/>
+      <path d="M31.5 -29 q-3 1 -4.2 4.8" fill="none" stroke="#7A2E10" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- poles, seams, hems -->
+      <path d="M-46 .5 C-40 -30 -10 -50 14 -46 C30 -42 39 -30 41 -21" fill="none" stroke="#6E2A0E" stroke-opacity=".6" stroke-width="1.3"/>
+      <path d="M-30 .5 C-30 -26 -18 -46 -4 -48" fill="none" stroke="#6E2A0E" stroke-opacity=".5" stroke-width="1.1"/>
+      <path d="M-8 .5 C-10 -18 -8 -38 -4 -48" fill="none" stroke="#FFE2B0" stroke-opacity=".22" stroke-width=".6"/>
+      <path d="M14 .5 C14 -18 16 -34 14 -46" fill="none" stroke="#8A3A16" stroke-opacity=".35" stroke-width=".6"/>
+      <path d="M-44 -6 C-30 -4 -10 -3 26 -3" fill="none" stroke="#5A1E08" stroke-opacity=".35" stroke-width=".7"/>
+      <path d="M-46 .5 L64 .5 L63 -2.2 L-45.8 -2.4Z" fill="#3A1205" fill-opacity=".6"/>
+      <path d="M-44 -2 L-34 -12 M-46 0 L-38 -5 M-4 -47 L-12 -38 M-4 -47 L2 -39 M40 -21 L33 -16 M26 -2 L19 -9" fill="none" stroke="#7A2E10" stroke-opacity=".16" stroke-width=".55" stroke-linecap="round"/>
+      <path d="M-4 -48 C-30 -45 -45 -24 -46 .5" fill="none" stroke="#FFE7B8" stroke-opacity=".28" stroke-width=".6"/>
+      <!-- guylines and stakes -->
+      <path d="M-38 -24 L-66 1.5 M-4 -48 L-50 1.5 M41 -21 L86 1.5" fill="none" stroke="#FFCF94" stroke-opacity=".22" stroke-width=".45"/>
+      <path d="M-66 1.5 v-2.2 M-50 1.5 v-2 M86 1.5 v-2.2 M64 .5 v-2" stroke="#C9A27A" stroke-opacity=".5" stroke-width=".7"/>
+    </g>"""
+
+
+TENT_DEFS = """<radialGradient id="tglowf" cx="-9" cy="-20" r="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE6AE"/><stop offset=".22" stop-color="#FFC27A"/><stop offset=".5" stop-color="#EC8642"/><stop offset=".8" stop-color="#B44C1E"/><stop offset="1" stop-color="#6E260C"/>
+    </radialGradient>
+    <linearGradient id="tfire" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#FF8A3A" stop-opacity=".35"/><stop offset=".45" stop-color="#FF8A3A" stop-opacity="0"/></linearGradient>
+    <radialGradient id="thot"><stop offset="0" stop-color="#FFFBEA" stop-opacity=".75"/><stop offset=".45" stop-color="#FFE2A0" stop-opacity=".3"/><stop offset="1" stop-color="#FFE2A0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="tpack" cx=".5" cy=".6"><stop offset="0" stop-color="#5A1E08" stop-opacity=".42"/><stop offset=".55" stop-color="#5A1E08" stop-opacity=".2"/><stop offset="1" stop-color="#5A1E08" stop-opacity="0"/></radialGradient>
+    <linearGradient id="tdoor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD48E"/><stop offset=".6" stop-color="#FFF0CC"/><stop offset="1" stop-color="#E9A25A"/></linearGradient>
+    <radialGradient id="tspill"><stop offset="0" stop-color="#FFC27A" stop-opacity=".4"/><stop offset="1" stop-color="#FFC27A" stop-opacity="0"/></radialGradient>"""
+
+
+def hero_person(PX, PY, sc=1.3):
+    """Someone on a log with their back to the fire, knees up, both hands
+    round an enamel mug, head tipped back at the sky. Two lights shape
+    them: firelight rims their back, beanie and the log; the aurora puts
+    a cold edge on the face, knees and the mug. Their breath fogs now
+    and then, and the mug steams."""
+    F, A = "#FF9D5C", "#9CFFDA"   # fire rim, aurora rim
+    return f"""<g transform="translate({PX} {n(PY)}) scale({sc})">
+      <ellipse cx="22" cy=".4" rx="30" ry="2.4" fill="#000" fill-opacity=".5"/>
+      <!-- the log: bark, a sawn end with rings, firelight along the top -->
+      <path d="M-22 -9.6 L20 -9.6 C23.5 -9.6 25 -6 25 -4.6 C25 -2 23.4 0 20 0 L-22 0Z" fill="#160B06"/>
+      <path d="M-20 -6.4 h14 M-12 -3.4 h18 M2 -7.2 h16 M-18 -1.8 h9" stroke="#2C170C" stroke-width=".6"/>
+      <ellipse cx="-22" cy="-4.8" rx="2.8" ry="4.8" fill="#5A3420"/>
+      <ellipse cx="-22" cy="-4.8" rx="1.8" ry="3.2" fill="none" stroke="#3A2010" stroke-width=".4"/>
+      <ellipse cx="-22" cy="-4.8" rx=".8" ry="1.5" fill="none" stroke="#3A2010" stroke-width=".4"/>
+      <path d="M-24.6 -6.4 C-24.4 -8.4 -23.4 -9.6 -22 -9.6" fill="none" stroke="#FFB27A" stroke-opacity=".7" stroke-width=".6"/>
+      <path d="M-22 -9.6 L18 -9.6" stroke="url(#logrim)" stroke-width=".8"/>
+      <!-- far leg, a shade darker -->
+      <path d="M1 -12 C7 -16 12 -21 16 -23.5 C18.4 -24.6 20 -23 19.6 -20.8 L19.4 -7 L22.6 -6 C25.4 -5 26.4 -3 26.2 -1.2 L26 -.2 L16.4 -.2 L16.4 -6.4 L16.6 -17.6 C12.6 -15 7.6 -12.4 3 -10.2Z" fill="#07080C" transform="translate(-1.6 .3)"/>
+      <!-- near leg: thigh, knee, shin, a heavy boot -->
+      <path d="M-1 -10.4 C5 -15 11 -20.6 15.6 -23.8 C18.4 -25.6 21 -24 20.8 -21.4 L20.4 -7.4 L23.4 -6.4 C26.6 -5.4 27.6 -3.2 27.4 -1.2 L27.2 0 L16.8 0 L16.8 -6.6 L17 -18 C13 -15 7.4 -11.4 2.6 -9Z" fill="url(#jkt)"/>
+      <path d="M16.8 -3.4 h10.6" stroke="#2A2420" stroke-width=".8"/>
+      <path d="M17 -7 h3.6" stroke="#3A3430" stroke-width=".5"/>
+      <path d="M15.6 -23.8 C18.4 -25.6 21 -24 20.8 -21.4" fill="none" stroke="{A}" stroke-opacity=".5" stroke-width=".5"/>
+      <path d="M23.4 -6.4 C26.6 -5.4 27.6 -3.2 27.4 -1.2" fill="none" stroke="{A}" stroke-opacity=".3" stroke-width=".4"/>
+      <g class="breathe">
+        <!-- puffy jacket, hood bunched at the neck -->
+        <path d="M-4.6 -9.6 C-7.4 -15 -8.4 -23 -7 -29.6 C-6 -34 -3.4 -37.2 .6 -37.6 C4.4 -37.8 7.2 -35.4 8 -31.6 C8.8 -27 8.2 -21 7 -15.4 L5.8 -10.6Z" fill="url(#jkt)"/>
+        <path d="M-6.4 -16 C-2 -15 3 -15.2 7 -16.6 M-7.2 -22.6 C-2.4 -21.4 3.4 -21.6 7.8 -23 M-6.6 -29 C-2.2 -28 3 -28 7.6 -29.4" fill="none" stroke="#000" stroke-opacity=".45" stroke-width=".55"/>
+        <path d="M-6 -35.6 C-8.6 -36.4 -9 -39.6 -6.4 -40.6 C-4.6 -41 -3 -39.6 -2.4 -37.6Z" fill="#14100F"/>
+        <path d="M-4.6 -9.6 C-7.4 -15 -8.4 -23 -7 -29.6 C-6.4 -32.4 -5.6 -34.4 -4.4 -35.8" fill="none" stroke="{F}" stroke-opacity=".7" stroke-width=".7"/>
+        <path d="M-6.4 -40.6 C-8.6 -39.6 -8.6 -37 -6 -35.6" fill="none" stroke="{F}" stroke-opacity=".55" stroke-width=".5"/>
+        <!-- near arm down to the knee and back up, both hands round the mug -->
+        <path d="M-1.4 -33.4 C-1 -27 3.6 -22.4 10.6 -22.6 C13.6 -22.8 15.6 -25.2 16.8 -28.4" fill="none" stroke="url(#jkt)" stroke-width="4.6" stroke-linecap="round"/>
+        <path d="M-3.4 -32.4 C-3 -26 1.8 -20.4 10 -20.4" fill="none" stroke="{F}" stroke-opacity=".5" stroke-width=".5"/>
+        <path d="M5 -31 C7.6 -29.6 11 -29.4 14.4 -30" fill="none" stroke="#0A0C12" stroke-width="3.6" stroke-linecap="round"/>
+        <rect x="16.4" y="-35.4" width="4.6" height="5.4" rx=".9" fill="#D9D2C4"/>
+        <rect x="16.4" y="-35.4" width="4.6" height="5.4" rx=".9" fill="url(#mug)"/>
+        <ellipse cx="18.7" cy="-35.4" rx="2.3" ry=".55" fill="#2A1A10"/>
+        <path d="M16.4 -35.4 h4.6" stroke="{A}" stroke-opacity=".7" stroke-width=".35"/>
+        <path d="M21 -34 q2.2 .4 2 2 q-.2 1.4 -2 1.4" fill="none" stroke="#BDB4A4" stroke-width=".7"/>
+        <path d="M15 -31.4 C15.6 -33.6 17.4 -33.8 18 -32 C18.4 -30.6 17.2 -29.4 15.6 -29.6Z" fill="#2E1C14"/>
+        <path d="M20.4 -31.6 C21.8 -32.4 22.4 -30.6 21.4 -29.8 C20.6 -29.4 19.8 -30 20.4 -31.6Z" fill="#24160F"/>
+        <path class="steam" d="M17.8 -36.6 q-1.6 -2.6 0 -5 q1.6 -2.4 0 -4.8" fill="none" stroke="#E8EEF6" stroke-opacity=".38" stroke-width=".6" stroke-linecap="round"/>
+        <path class="steam" style="animation-delay:-1.6s" d="M19.6 -36.6 q1.4 -2.4 0 -4.6 q-1.4 -2.2 0 -4.4" fill="none" stroke="#E8EEF6" stroke-opacity=".3" stroke-width=".5" stroke-linecap="round"/>
+        <!-- head tipped back at the sky: profile, ear, beanie with a folded cuff -->
+        <g transform="rotate(-22 1 -38)">
+          <path d="M-1.6 -37.8 L-1.4 -40.2 C-4.8 -41.6 -5.6 -47.6 -2.8 -50.6 C-.4 -53 4.6 -53 6.6 -49.6 L7 -47.8 L8.9 -45.2 L7.7 -44.6 L8.1 -43.4 L7.5 -42.7 L7.7 -41.5 C6.6 -40.2 4.8 -39.9 3.6 -39.5 L3.4 -37.6Z" fill="url(#skin)"/>
+          <path d="M7 -47.8 L8.9 -45.2 L7.7 -44.6 L8.1 -43.4 L7.5 -42.7 L7.7 -41.5 C6.6 -40.2 4.8 -39.9 3.6 -39.5" fill="none" stroke="{A}" stroke-opacity=".45" stroke-width=".38"/>
+          <path d="M5.4 -46.8 q.9 .5 1.6 .1" fill="none" stroke="#05070C" stroke-width=".5" stroke-linecap="round"/>
+          <ellipse cx=".8" cy="-44.8" rx="1" ry="1.5" fill="#3A1E14"/>
+          <path d="M-4.6 -46.2 C-5.4 -51.6 -2 -55.6 2.6 -55.4 C6.4 -55.2 8.4 -52.4 7.6 -48.8 L-4 -46.6Z" fill="#191B22"/>
+          <path d="M-5 -47.6 C-1 -49.4 4 -49.8 7.9 -48.6 L7.6 -46.6 C4 -47.8 -.6 -47.6 -4.6 -45.6Z" fill="#232630"/>
+          <path d="M-5 -47.6 C-1 -49.4 4 -49.8 7.9 -48.6" fill="none" stroke="#000" stroke-opacity=".4" stroke-width=".4"/>
+          <path d="M-4.6 -46.2 C-5.4 -51.6 -2 -55.6 2.6 -55.4" fill="none" stroke="{F}" stroke-opacity=".65" stroke-width=".55"/>
+          <path d="M2.6 -55.4 C6.4 -55.2 8.4 -52.4 7.6 -48.8" fill="none" stroke="{A}" stroke-opacity=".4" stroke-width=".4"/>
+          <path d="M-4.4 -45.4 q-.8 2 .4 3.6" fill="none" stroke="#0B0605" stroke-width="1" stroke-linecap="round"/>
+          <path class="fog" d="M9.4 -42.2 q3 -1 5 .6 q2.6 -.4 3.4 1.6 q-1.6 1.8 -4.2 1 q-2.4 1.2 -4.2 -.4Z" fill="#DDE8F2"/>
+        </g>
+      </g>
+    </g>"""
+
+
+PERSON_DEFS = """<linearGradient id="jkt" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E2016"/><stop offset=".3" stop-color="#16110F"/><stop offset=".72" stop-color="#0C1018"/><stop offset="1" stop-color="#12252C"/>
+    </linearGradient>
+    <linearGradient id="mug" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB27A" stop-opacity=".5"/><stop offset=".4" stop-color="#3A3430" stop-opacity=".5"/><stop offset="1" stop-color="#0E1A20" stop-opacity=".75"/></linearGradient>
+    <linearGradient id="logrim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB27A" stop-opacity=".8"/><stop offset="1" stop-color="#FFB27A" stop-opacity=".05"/></linearGradient>"""
+
+PERSON_CSS = """
+    .fog { transform-box:fill-box; transform-origin:0% 50%; animation:fog 6.5s ease-out infinite; }
+    @keyframes fog { 0%,62% { opacity:0; transform:scale(.3); } 68% { opacity:.32; } 100% { opacity:0; transform:translate(5px,-3px) scale(1.6); } }"""
+
+
 # ─── hero ────────────────────────────────────────────────────────────────────
 def hero_curtain(rnd, s0, s1, ds, X, B, Hh, grad, lam, wave, radiant=(500, -1800), veil_op=(.24, .46), ray_p=.8, I=lambda s: 1):
     """One auroral curtain, built the way it looks from the ground.
@@ -1885,60 +2152,42 @@ def night_hero():
     # the bank in front: camp, fire, someone on a log, an upturned canoe
     bank = [(-20, 414), (60, 411), (150, 414), (240, 419), (320, 426), (390, 440), (440, 462), (478, 496), (500, 545)]
     bank_d = smooth(bank) + f" L-20 {H + 5}Z"
-    TX, FX, PX = 132, 224, 266
+    TX, FX, PX = 118, 224, 282
     FY = yat(bank, FX) + 1
     TY, PY = yat(bank, TX) + 1, yat(bank, PX) + 1
-    fire = campfire(rnd, FX, FY, 1.05)
-    tufts = "".join(f'<path d="M{n(x)} {n(yat(bank, x) + 1)} l{n(rnd.uniform(-3, 3))} {n(-rnd.uniform(4, 9))}" />'
-                    for x in (rnd.uniform(20, 470) for _ in range(70)) if abs(x - FX) > 20)
+    fire = hero_fire(random.Random(808), FX, FY, 1.15)
+    grng, tuft_d, tuft_l = random.Random(55), [], [[], [], []]
+    for _ in range(120):
+        x = grng.uniform(6, 480)
+        if abs(x - FX) < 26:
+            continue
+        y = yat(bank, x) + grng.uniform(.5, 3.5)
+        for _ in range(grng.randint(3, 6)):
+            hb, lb = grng.uniform(3, 9), grng.uniform(-3.5, 3.5)
+            bx = x + grng.uniform(-1.5, 1.5)
+            blade = f"M{n(bx)} {n(y)}q{n(lb * .2)} {n(-hb * .6)} {n(lb)} {n(-hb)}"
+            tuft_d.append(blade)
+            k = 1 - abs(x - FX) / 120
+            if k > 0:
+                tuft_l[min(2, int(k * 3))].append(blade)
+    tufts = (f'<path d="{"".join(tuft_d)}" stroke="#0A0705" stroke-width=".9" fill="none" stroke-linecap="round"/>'
+             + "".join(f'<path class="glow" d="{"".join(t)}" stroke="#FF9A4A" stroke-opacity="{op}" stroke-width=".5" fill="none" stroke-linecap="round" transform="translate(-.3 0)"/>'
+                       for t, op in zip(tuft_l, (".18", ".34", ".55")) if t))
     cy = yat(bank, 368)
     canoe = (f'<path d="M330 {n(cy - 2)} C350 {n(cy - 15)} 392 {n(cy - 13)} 412 {n(cy + 4)} L408 {n(cy + 7)} '
              f'C388 {n(cy - 3)} 352 {n(cy - 4)} 333 {n(cy + 2)}Z" fill="#160C08"/>'
              f'<path d="M330 {n(cy - 2)} C350 {n(cy - 15)} 392 {n(cy - 13)} 412 {n(cy + 4)}" fill="none" stroke="#FF9D5C" stroke-opacity=".45" stroke-width="1.2"/>')
-    person = f"""<g transform="translate({PX} {n(PY)}) scale(1.12)">
-      <!-- log -->
-      <rect x="-17" y="-8.5" width="36" height="8.5" rx="4.2" fill="#1A0E08"/>
-      <ellipse cx="-16" cy="-4.2" rx="2.2" ry="4" fill="#3A1E10"/>
-      <path d="M-15 -8.3 h30" stroke="#FF9D5C" stroke-opacity=".35" stroke-width=".7"/>
-      <!-- legs, knees drawn up -->
-      <path d="M0 -9 L4 -12.5 C9 -15.5 13 -20.5 15.8 -19.4 C17.8 -18.6 18 -16.4 17.4 -14.2 L18 -2.2 L21.4 -1.6 C22.6 -1.1 22.4 0 21.2 0 L13.8 0 L14 -12.2 C10.4 -10.6 6 -8.6 2 -7.4Z" fill="url(#skin)"/>
-      <g class="breathe">
-        <!-- hoodie, leaning back a touch -->
-        <path d="M-4.4 -9 C-6.6 -16 -6.8 -25 -3.6 -31 C-1.4 -33.4 3 -33.8 5.2 -31.6 C6.8 -27 7.4 -22 6.8 -17 L7.2 -12 L0 -8.6Z" fill="url(#skin)"/>
-        <path d="M-3.6 -31 C-5.6 -32.2 -5.4 -35.6 -2.6 -35.6 C-1.6 -34 -.2 -33.4 1 -33.2Z" fill="#120A08"/>
-        <!-- arm resting on the knee, mug in hand -->
-        <path d="M-.6 -28.6 C1.4 -24 4.4 -20.4 9.4 -19.8 C12.4 -19.8 15 -21.6 16.8 -23.4" fill="none" stroke="url(#skin)" stroke-width="3.6" stroke-linecap="round"/>
-        <circle cx="17.2" cy="-23.6" r="1.6" fill="#2A1610"/>
-        <rect x="16.2" y="-28.2" width="4" height="4.6" rx=".8" fill="#5A3020"/>
-        <path d="M20.2 -27.2 q2 .4 0 2.6" fill="none" stroke="#5A3020" stroke-width=".8"/>
-        <path d="M16.4 -28.2 h3.6" stroke="#FFB27A" stroke-opacity=".5" stroke-width=".5"/>
-        <path class="steam" d="M17.6 -29.5 q-1.4 -2.4 0 -4.6 q1.4 -2.2 0 -4.4" fill="none" stroke="#E8EEF6" stroke-opacity=".35" stroke-width=".6" stroke-linecap="round"/>
-        <path class="steam" style="animation-delay:-1.6s" d="M19 -29.5 q1.2 -2.2 0 -4.2 q-1.2 -2 0 -4" fill="none" stroke="#E8EEF6" stroke-opacity=".3" stroke-width=".5" stroke-linecap="round"/>
-        <!-- head, tilted up toward the aurora -->
-        <g transform="rotate(-16 2 -34)">
-          <path d="M.6 -33 L.8 -35.2 C-2.4 -36.4 -3 -42 -1 -45 C1 -48.2 6 -48.6 7.6 -45.2 L8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6 C7.1 -36.2 5.2 -36 4.2 -35.6 L4.2 -33Z" fill="url(#skin)"/>
-          <path d="M8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6" fill="none" stroke="#9FFFD4" stroke-opacity=".3" stroke-width=".4"/>
-          <path d="M6.6 -42.6 q.8 .5 1.4 .2" fill="none" stroke="#05070C" stroke-width=".5" stroke-linecap="round"/>
-          <ellipse cx="1.9" cy="-40.6" rx=".95" ry="1.45" fill="#3A1E14"/>
-          <g class="hair">
-            <path d="M-3.1 -40.6 C-4.2 -45.2 -2 -49.8 3.2 -49.8 C6.8 -49.8 8.9 -47.6 8.6 -44.8 C7.3 -46.1 5.8 -45.9 4.3 -46.7 C3.6 -45 2 -44.2 .9 -43.2 C.6 -41.4 -.4 -39.4 -1.7 -37.8 C-2.6 -38.4 -3.1 -39.6 -3.1 -40.6Z" fill="#0B0605"/>
-            <path d="M-1.2 -48 q2.4 -2.6 6 -2 q2.8 .6 3.6 2.6 M-3 -43 q-1.2 -1 -.8 -3" fill="none" stroke="#0B0605" stroke-width="1.1" stroke-linecap="round"/>
-          </g>
-          <path d="M-3.1 -40.6 C-4.2 -45.2 -2 -49.8 3.2 -49.8" fill="none" stroke="#FF9D5C" stroke-opacity=".6" stroke-width=".55"/>
-        </g>
-        <!-- firelight along the back -->
-        <path d="M-4.4 -9 C-6.6 -16 -6.8 -25 -3.6 -31" fill="none" stroke="#FF9D5C" stroke-opacity=".6" stroke-width=".6"/>
-      </g>
-    </g>"""
-    tent = f"""<g transform="translate({TX} {n(TY)})">
-      <path d="M-40 0 L0 -54 L40 0Z" fill="url(#tent)" class="glow"/>
-      <path d="M0 -54 L-7 0 h14z" fill="#6E2810" fill-opacity=".85"/>
-      <ellipse cx="0" cy="-10" rx="5" ry="8" fill="#FFE8B0" fill-opacity=".55" filter="url(#ablur2)"/>
-      <path d="M-40 0 L0 -54 L40 0" fill="none" stroke="#2A140A" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M0 -54 l-5 -6 M0 -54 l5 -6" stroke="#2A140A" stroke-width="1.2"/>
-      <path d="M-20 -27 L-52 2 M20 -27 L52 2" stroke="#FFCF94" stroke-opacity=".25" stroke-width=".6"/>
-    </g>"""
-    fg = "".join(f'<path d="{fir(rnd, x, H + 20, h, .32)}"/>' for x, h in [(-30, 470), (40, 320), (930, 250), (978, 410), (1032, 500), (884, 150)])
+    person = hero_person(PX, PY)
+    tent = hero_tent(TX, TY)
+    trng, tdefs, fg = random.Random(2024), [], []
+    for i, (x, h, side) in enumerate([(-30, 470, "L"), (40, 320, "L"), (884, 150, "R"), (930, 250, "R"), (978, 410, "R"), (1032, 500, "R")]):
+        body, rimR, rimL = spruce(trng, x, H + 20, h, h * .3, (-4, W + 4, H + 2), 404 if side == "L" else 1e9)
+        fg.append(f'<path d="{body}" fill="#020409"/>')
+        # left trees take the fire on their right flank, right trees the moon; sky glow on the other side
+        fg.append(f'<path class="glow" d="{rimR}" fill="none" stroke="url(#trfire)" stroke-width=".7" stroke-linecap="round"/>' if side == "L"
+                  else f'<path d="{rimR}" fill="none" stroke="#B4C8EA" stroke-opacity=".3" stroke-width=".6" stroke-linecap="round"/>')
+        fg.append(f'<path d="{rimL}" fill="none" stroke="url(#trsky)" stroke-width=".55" stroke-linecap="round"/>')
+    tdefs, fg = "", "".join(fg)
     rocks = "M760 545 C770 520 800 512 826 522 C846 506 880 508 902 524 C930 516 960 520 990 534 L1010 545Z"
     flies = motes(rnd, 26, 300, 900, HZ - 40, H - 30, "#E4FF9A", 1.4, cls="fly")
 
@@ -2039,13 +2288,20 @@ def night_hero():
       <stop offset="0" stop-color="#0E2A36" stop-opacity=".05"/><stop offset=".4" stop-color="#061420" stop-opacity=".22"/><stop offset="1" stop-color="#02060C" stop-opacity=".7"/>
     </linearGradient>
     <clipPath id="lc"><rect y="{HZ}" width="{W}" height="{H - HZ}"/></clipPath>
+    <clipPath id="bankc"><path d="{bank_d}"/></clipPath>
+    <radialGradient id="gfire"><stop offset="0" stop-color="#FF9A4A" stop-opacity=".42"/><stop offset=".35" stop-color="#E0642A" stop-opacity=".14"/><stop offset="1" stop-color="#E0642A" stop-opacity="0"/></radialGradient>
+    <linearGradient id="trsky" x1="0" y1="0" x2="0" y2="{H}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#6FE8C4" stop-opacity=".55"/><stop offset=".75" stop-color="#3A7F8A" stop-opacity=".12"/><stop offset="1" stop-color="#3A7F8A" stop-opacity="0"/></linearGradient>
+    <linearGradient id="trfire" x1="0" y1="250" x2="0" y2="{H}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF8A40" stop-opacity=".06"/><stop offset=".45" stop-color="#FF9A4A" stop-opacity=".5"/><stop offset=".72" stop-color="#FF8A40" stop-opacity=".4"/><stop offset="1" stop-color="#FF8A40" stop-opacity=".05"/></linearGradient>
+    {FIRE_DEFS}
+    {TENT_DEFS}
+    {PERSON_DEFS}
+    {tdefs}
     <radialGradient id="fireg" cx="{FX}" cy="{n(FY - 8)}" r="260" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFB25A" stop-opacity=".5"/><stop offset=".3" stop-color="#F2794A" stop-opacity=".16"/><stop offset="1" stop-color="#F2794A" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="rim" cx="{FX}" cy="{n(FY)}" r="200" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFB25A" stop-opacity=".9"/><stop offset="1" stop-color="#FFB25A" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="tent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFCB85"/><stop offset="1" stop-color="#C9632F"/></linearGradient>
     <linearGradient id="skin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4A2414"/><stop offset=".45" stop-color="#140A08"/><stop offset="1" stop-color="#05070C"/></linearGradient>
     <linearGradient id="shootg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
     <radialGradient id="scrim" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#01030A" stop-opacity=".66"/><stop offset=".6" stop-color="#01030A" stop-opacity=".32"/><stop offset="1" stop-color="#01030A" stop-opacity="0"/></radialGradient>
@@ -2085,7 +2341,9 @@ def night_hero():
     @keyframes wv2 {{ from {{ transform:translateX(-1.8px); }} to {{ transform:translateX(1.8px); }} }}
     @keyframes wv3 {{ from {{ transform:translateX(-3.4px); }} to {{ transform:translateX(3.4px); }} }}
     @keyframes drift {{ from {{ transform:translateX(-18px); }} to {{ transform:translateX(18px); }} }}
-    {reduced(".aw1,.aw2,.aw3,.fl,.breath,.drift,.wv1,.wv2,.wv3")}''')}
+    {FIRE_CSS}
+    {PERSON_CSS}
+    {reduced(".aw1,.aw2,.aw3,.fl,.breath,.drift,.wv1,.wv2,.wv3,.coal,.lick,.sk1,.sk2,.sk3,.fog", ".sk1,.sk2,.sk3,.lick,.fog {{ opacity:0; }}")}''')}
   </style>
   <g clip-path="url(#frame)">
     <g>
@@ -2145,6 +2403,7 @@ def night_hero():
     <!-- camp -->
     <rect class="glow" width="{W}" height="{H}" fill="url(#fireg)"/>
     <path d="{bank_d}" fill="#03070D"/>
+    <ellipse class="glow" cx="{FX}" cy="{n(FY + 8)}" rx="190" ry="44" fill="url(#gfire)" clip-path="url(#bankc)"/>
     <path d="{smooth(bank)}" fill="none" stroke="url(#rim)" stroke-width="1.6"/>
     <g stroke="#0B0705" stroke-width="1.1" stroke-linecap="round">{tufts}</g>
     {canoe}
@@ -2153,7 +2412,7 @@ def night_hero():
     {person}
     {flies}
     <path d="{rocks}" fill="#02050A"/>
-    <g fill="#010307">{fg}</g>
+    {fg}
 
     <!-- name -->
     <ellipse cx="500" cy="134" rx="410" ry="96" fill="url(#scrim)"/>
