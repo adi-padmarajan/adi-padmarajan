@@ -20,13 +20,18 @@ conifers, contour maps), so re-running with the same seeds reproduces the
 exact same files. Everything animates with CSS / SMIL only, which is what
 GitHub allows inside an <img>.
 
-Run:  python3 generate_assets.py
+The night hero bakes its static terrain (mountain rock and snow, and the
+lake's reflection) into embedded JPEGs so browsers only animate the cheap
+parts; that step needs numpy and Pillow.
+
+Run:  python3 generate_assets.py        (pip install numpy pillow)
 Out:  assets/*.svg
 """
 
 import math
 import os
 import random
+import re
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 os.makedirs(OUT, exist_ok=True)
@@ -69,7 +74,7 @@ def P(x, y):
 
 
 # ── geometry ─────────────────────────────────────────────────────────────────
-def ridge(rnd, x0, x1, base, rough, peaks=(), iters=7, decay=.56):
+def ridge(rnd, x0, x1, base, rough, peaks=(), iters=7, decay=.56, sharp=1.45):
     """Midpoint-displacement ridgeline with hand-placed peaks laid on top."""
     N = 2 ** iters + 1
     ys = [0.0] * N
@@ -84,7 +89,7 @@ def ridge(rnd, x0, x1, base, rough, peaks=(), iters=7, decay=.56):
     pts = []
     for i, y in enumerate(ys):
         x = x0 + (x1 - x0) * i / (N - 1)
-        lift = sum(ph * max(0.0, 1 - abs(x - px) / pw) ** 1.45 for px, ph, pw in peaks)
+        lift = sum(ph * max(0.0, 1 - abs(x - px) / pw) ** sharp for px, ph, pw in peaks)
         pts.append((x, base + y - lift))
     return pts
 
@@ -1555,18 +1560,249 @@ def edge_trees(rnd, W, H, y, hmin, hmax, gap, fill="#02050A"):
     return f'<path d="{fill_under(rid, H + 2)}" fill="{fill}"/><path d="{treeline(rnd, rid, hmin, hmax, gap, sink=4)}" fill="{fill}"/>'
 
 
+# ─── baked terrain ───────────────────────────────────────────────────────────
+def _perlin(X, Y, perm, np):
+    """Classic 2D gradient noise, vectorised. Returns roughly [-.7, .7]."""
+    xi, yi = np.floor(X).astype(np.int64), np.floor(Y).astype(np.int64)
+    xf, yf = X - xi, Y - yi
+    u, v = xf * xf * xf * (xf * (xf * 6 - 15) + 10), yf * yf * yf * (yf * (yf * 6 - 15) + 10)
+    G = np.array([(1, 1), (-1, 1), (1, -1), (-1, -1), (1.4, 0), (-1.4, 0), (0, 1.4), (0, -1.4)])
+    def g(ix, iy, dx, dy):
+        h = perm[perm[ix & 255] + (iy & 255)] & 7
+        return G[h, 0] * dx + G[h, 1] * dy
+    a = g(xi, yi, xf, yf) + u * (g(xi + 1, yi, xf - 1, yf) - g(xi, yi, xf, yf))
+    b = g(xi, yi + 1, xf, yf - 1) + u * (g(xi + 1, yi + 1, xf - 1, yf - 1) - g(xi, yi + 1, xf, yf - 1))
+    return a + v * (b - a)
+
+
+def terrain_jpeg(pts, peaks, box, scale, seed, moon_x, snowline, look):
+    """Paint one mountain range as a photograph-like texture, returned as a
+    base64 JPEG. Everything that never moves is baked here, so the browser
+    draws a single image per frame instead of re-running lighting filters.
+
+    The surface is ridged multifractal noise stretched vertically (arêtes and
+    gullies running down the fall line), lit by the moon from the upper
+    right. Each face also takes its broad light from the slope of the ridge
+    above it, so a peak has a lit side and a shadow side. Snow collects where
+    altitude, gully floors and noise agree, the way it sits in couloirs."""
+    import base64, io
+    import numpy as np
+    from PIL import Image
+
+    x0, y0, x1, y1 = box
+    Wp, Hp = int((x1 - x0) * scale), int((y1 - y0) * scale)
+    X, Y = np.meshgrid(x0 + (np.arange(Wp) + .5) / scale, y0 + (np.arange(Hp) + .5) / scale)
+    rs = np.random.RandomState(seed)
+    perm = np.concatenate([rs.permutation(256)] * 2)
+    perm2 = np.concatenate([rs.permutation(256)] * 2)
+
+    xs = np.array([p[0] for p in pts]); ys = np.array([p[1] for p in pts])
+    crest = np.interp(X[0], xs, ys)                         # ridge height per column
+    depth = np.maximum(0, Y - crest[None, :])                # distance below the crest
+
+    # broad faces: slope of the ridge above, smoothed more the further down you go,
+    # with the crease wandering a little so the faces are not cut with a ruler
+    wob = _perlin(X * .02, Y * .03, perm2, np) * (6 + depth * .35)
+    xq = np.clip(X + wob, x0, x1 - 1e-3)
+    def slope(k):
+        c = np.interp(np.arange(x0, x1, 1.0), xs, ys)
+        ker = np.exp(-.5 * (np.arange(-3 * k, 3 * k + 1) / k) ** 2); ker /= ker.sum()
+        sm = np.convolve(np.pad(c, 3 * k, mode="edge"), ker, mode="valid")
+        return np.gradient(sm)
+    s_near, s_far = slope(5), slope(16)
+    idx = lambda s: np.interp(xq, np.arange(x0, x1, 1.0), s)
+    mix = np.clip(depth / 70, 0, 1)
+    face = idx(s_near) * (1 - mix) + idx(s_far) * mix
+    side = 1 if moon_x > (x0 + x1) / 2 else -1
+    macro = np.clip(.52 + side * 1.6 * face, .2, 1.0)
+
+    # detail relief: ridged multifractal, vertical grain
+    H, amp, fx, fy, wsum = np.zeros_like(X), 1.0, look["fx"], look["fy"], 0
+    for o in range(look["oct"]):
+        r = 1 - np.abs(_perlin(X * fx + o * 17.3, Y * fy + o * 7.1, perm, np) * 1.4)
+        H += amp * r * r
+        wsum += amp; amp *= .5; fx *= 2.05; fy *= 2.05
+    H /= wsum
+    gy, gx = np.gradient(H * look["relief"] * scale)
+    N = np.stack([-gx, -gy, np.ones_like(H)], -1)
+    N /= np.linalg.norm(N, axis=-1, keepdims=True)
+    L = np.array([.62 * side, -.5, .6]); L /= np.linalg.norm(L)
+    lam = np.clip(N @ L, 0, 1)
+    light = np.clip(lam * macro * 1.35, 0, 1.2)
+
+    # snow
+    n2 = _perlin(X * .05, Y * .016, perm2, np)
+    alt = 1 - (Y - (Y.min())) / (snowline - Y.min())
+    snow = alt * 1.15 + (.55 - H) * look["gully"] + n2 * .7 - depth * .004 - look["snow_bias"]
+    snow = np.clip(snow / .12, 0, 1)
+    snow *= np.clip(1.7 - np.abs(N[..., 0]) * 2.4, 0, 1)                    # sheer walls shed snow
+
+    def c(h): return np.array([int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+    rock = c(look["rock_dark"]) + (c(look["rock_lit"]) - c(look["rock_dark"])) * light[..., None]
+    snowc = c(look["snow_dark"]) + (c(look["snow_lit"]) - c(look["snow_dark"])) * np.clip(light * 1.1, 0, 1)[..., None]
+    col = rock * (1 - snow[..., None]) + snowc * snow[..., None]
+    # aurora light falls on whatever faces up; distance haze toward the valley floor
+    up = np.clip(-N[..., 1] * 2.2, 0, 1) * np.exp(-depth / 55)
+    col += c(look["aurora"]) * (up * look["aurora_k"])[..., None]
+    haze = np.clip((Y - look["haze_from"]) / (look["haze_to"] - look["haze_from"]), 0, 1) ** 1.3 * look["haze_k"]
+    col = col * (1 - haze[..., None]) + c(look["haze"]) * haze[..., None]
+    return _jpeg(col, look.get("q", 78)), col
+
+
+def _jpeg(col, q):
+    import base64, io
+    import numpy as np
+    from PIL import Image
+    img = Image.fromarray((np.clip(col, 0, 1) * 255 + .5).astype("uint8"), "RGB")
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=q, optimize=True, progressive=True)
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def _polys(d):
+    """Polygons from the M/L/Z-only path data this file generates."""
+    out = []
+    for sub in d.split("M"):
+        v = [float(t) for t in re.findall(r"-?\d+(?:\.\d+)?", sub)]
+        if len(v) >= 6:
+            out.append(list(zip(v[0::2], v[1::2])))
+    return out
+
+
+def _cover(polys, box, scale, ss=3):
+    """Antialiased coverage of polygons on a raster grid (supersampled)."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    x0, y0, x1, y1 = box
+    Wp, Hp = round((x1 - x0) * scale), round((y1 - y0) * scale)
+    im = Image.new("L", (Wp * ss, Hp * ss), 0)
+    d, k = ImageDraw.Draw(im), scale * ss
+    for poly in polys:
+        d.polygon([((x - x0) * k, (y - y0) * k) for x, y in poly], fill=255)
+    return np.asarray(im.resize((Wp, Hp), Image.BOX), dtype=float) / 255
+
+
+def reflection_jpeg(box, scale, HZ, sky_stops, glow, layers, aurora_edge, seed):
+    """The lake, baked: the scene above the shoreline mirrored, pushed around
+    by ripples that grow as they come closer, softened, and darkened to what
+    water actually gives back. Only cheap strip-wobble animates on top.
+
+    layers: list of (polys, flat colour) or (polys, (texture, texture box, texture scale))."""
+    import numpy as np
+    x0, y0, x1, y1 = box                         # lake box; scene box is its mirror
+    sy0 = 2 * HZ - y1
+    Wp, Hp = round((x1 - x0) * scale), round((y1 - y0) * scale)
+    X, Y = np.meshgrid(x0 + (np.arange(Wp) + .5) / scale, sy0 + (np.arange(Hp) + .5) / scale)
+    hexc = lambda h: np.array([int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+
+    # sky above the shoreline
+    t = np.clip(Y / HZ, 0, 1)
+    col = np.stack([np.interp(t, [o for o, _ in sky_stops], [hexc(c)[ch] for _, c in sky_stops]) for ch in range(3)], -1)
+    gx, gy, gr, gstops = glow
+    d = np.sqrt((X - gx) ** 2 + ((Y - gy) / .5) ** 2) / gr
+    a = np.interp(d, [o for o, _, _ in gstops], [al for _, _, al in gstops])
+    gc = np.stack([np.interp(d, [o for o, _, _ in gstops], [hexc(c)[ch] for _, c, _ in gstops]) for ch in range(3)], -1)
+    col = col * (1 - a[..., None]) + gc * a[..., None]
+    # the aurora's lower edge, as a soft band (most of it hides behind the peaks)
+    e = aurora_edge(X)
+    band = np.where(Y < e, np.exp(-(e - Y) / 38) * .55, np.exp(-(Y - e) / 3) * .8)
+    col = col + hexc("#3CF0A0") * band[..., None] * .55
+
+    box_s = (x0, sy0, x1, HZ)
+    for polys, fill in layers:
+        cov = _cover(polys, box_s, scale)[:Hp, :Wp][..., None]
+        if isinstance(fill, str):
+            src = hexc(fill)
+        else:
+            tex, (tx0, ty0, tx1, ty1), ts = fill
+            ix = np.clip(((X - tx0) * ts).astype(int), 0, tex.shape[1] - 1)
+            iy = np.clip(((Y - ty0) * ts).astype(int), 0, tex.shape[0] - 1)
+            src = tex[iy, ix]
+        col = col * (1 - cov) + src * cov
+
+    scene = col[::-1]                             # mirror: row 0 now sits at the shoreline
+    # ripples: horizontal push, bigger toward the viewer, in rows that spread with distance
+    rs = np.random.RandomState(seed)
+    perm = np.concatenate([rs.permutation(256)] * 2)
+    LY = (np.arange(Hp) + .5) / scale             # distance below the shoreline
+    tt = (LY / (y1 - y0))[:, None]
+    Yn = 16 * np.log1p(LY / 2.5)[:, None] * np.ones((1, Wp))
+    Xn = np.ones((Hp, 1)) * ((np.arange(Wp) + .5) / scale)[None, :]
+    nx = _perlin(Xn * .012, Yn, perm, np) + .5 * _perlin(Xn * .03 + 9, Yn * 2.1, perm, np)
+    ny = _perlin(Xn * .01 + 31, Yn * .8, perm, np)
+    dx = (1 + 9 * tt ** 1.2) * nx * scale
+    dy = (.4 + 3 * tt) * ny * scale
+    sx = np.clip(np.arange(Wp)[None, :] + dx, 0, Wp - 1.001)
+    sy = np.clip(np.arange(Hp)[:, None] + dy, 0, Hp - 1.001)
+    ix, iy = sx.astype(int), sy.astype(int)
+    fx, fy = (sx - ix)[..., None], (sy - iy)[..., None]
+    out = (scene[iy, ix] * (1 - fx) * (1 - fy) + scene[iy, ix + 1] * fx * (1 - fy)
+           + scene[iy + 1, ix] * (1 - fx) * fy + scene[iy + 1, ix + 1] * fx * fy)
+    out = (np.roll(out, 1, 0) + 2 * out + np.roll(out, -1, 0)) / 4      # a little vertical smear
+    out[0] = out[1]
+    return _jpeg(out * .78, 74)
+
+
 # ─── hero ────────────────────────────────────────────────────────────────────
+def hero_curtain(rnd, s0, s1, ds, X, B, Hh, grad, lam, wave, radiant=(500, -1800), veil_op=(.24, .46), ray_p=.8, I=lambda s: 1):
+    """One auroral curtain, built the way it looks from the ground.
+
+    The curtain is a folded ribbon: X(s), B(s) trace its lower edge along a
+    parameter s, so where X runs backwards the ribbon folds over itself and
+    the fold reads brighter. Every ray stands on that edge and leans toward a
+    radiant far overhead (rays are parallel field lines seen in perspective).
+    A soft veil makes the body continuous; thin rays on top give the
+    striations. Each piece rides a travelling wave (CSS delay keyed to s),
+    so the lower edge ripples like cloth instead of sliding as one block."""
+    BINS = 32                                    # pieces sharing a wave phase animate as one group
+    veils, rays, s = [[] for _ in range(BINS)], [[] for _ in range(BINS)], s0
+    period = 2 * {"aw1": 7.5, "aw2": 10.5, "aw3": 6}[wave]
+    while s < s1:
+        x, b, h, i = X(s), B(s), Hh(s), I(s)
+        k = (radiant[0] - x) / (b - radiant[1])
+        ph = int((s / lam) % 1 * BINS) % BINS
+        w, hv = ds * 2.9, h * rnd.uniform(.92, 1.06)
+        veils[ph].append(f'<path fill-opacity="{rnd.uniform(*veil_op) * i:.2f}" '
+                         f'd="M{n(x - w / 2)} {n(b + 2)}h{n(w)}l{n(k * hv)} {n(-hv)}h{n(-w)}z"/>')
+        if rnd.random() < ray_p:
+            w, hr = ds * rnd.uniform(.3, 1.15), h * rnd.uniform(.45, 1.22)
+            xr = x + rnd.uniform(-ds, ds) * .5
+            rays[ph].append(f'<path fill-opacity="{(.12 + .88 * rnd.random() ** 1.7) * i:.2f}" '
+                            f'd="M{n(xr)} {n(b + 1.5)}h{n(w)}l{n(k * hr)} {n(-hr)}h{n(-w)}z"/>')
+        s += ds * rnd.uniform(.7, 1.3)
+    dl = lambda p: f"animation-delay:-{p / BINS * period:.2f}s"
+    V = "".join(f'<g class="{wave}" style="{dl(p)}">{"".join(v)}</g>' for p, v in enumerate(veils) if v)
+    R = "".join(f'<g class="{wave}" style="{dl(p)}"><g class="fl" style="animation-duration:{rnd.uniform(1.6, 4.4):.1f}s;'
+                f'animation-delay:-{rnd.uniform(0, 4):.1f}s">{"".join(r)}</g></g>' for p, r in enumerate(rays) if r)
+    return f'<g fill="url(#{grad}v)">{V}</g><g fill="url(#{grad})" filter="url(#rsoft)">{R}</g>'
+
+
+def ripples(rnd, W, y0, y1, col, op, thick):
+    """Ripple crests on the lake: dashes that spread out as they come closer."""
+    out, y = [], y0 + 1.5
+    while y < y1:
+        t = (y - y0) / (y1 - y0)
+        x = rnd.uniform(-60, 0)
+        while x < W:
+            L = rnd.uniform(14, 90) * (1 + 2.2 * t)
+            if rnd.random() < .62:
+                out.append(f"M{n(x)} {n(y + rnd.uniform(-.4, .4))}h{n(L)}")
+            x += L + rnd.uniform(6, 40) * (1 + 2 * t)
+        y += 1.3 + 10 * t ** 1.5 + rnd.uniform(0, 1.2 + 3 * t)
+    return f'<path d="{"".join(out)}" stroke="{col}" stroke-opacity="{op}" stroke-width="{thick}" stroke-linecap="round" fill="none"/>'
+
+
 def night_hero():
     rnd = random.Random(4711)
     W, H, HZ = 1000, 540, 372
 
     in_text = lambda x, y: 150 < x < 850 and 50 < y < 195
-    stars = starfield(rnd, W, 0, HZ - 30, 300, avoid=in_text)
+    stars = starfield(rnd, W, 0, HZ - 40, 460, avoid=in_text)
 
     # milky way, rising left to right behind everything
     slope, c0 = -.27, 262
     my = lambda x: c0 + slope * x
-    band = [(x, my(x) + rnd.gauss(0, 22), rnd.choice([.3, .35, .45, .55])) for x in (rnd.uniform(-20, W + 20) for _ in range(900))]
+    band = [(x, my(x) + rnd.gauss(0, 22), rnd.choice([.3, .35, .45, .55])) for x in (rnd.uniform(-20, W + 20) for _ in range(1100))]
     band = [p for p in band if 0 < p[1] < HZ - 40]
     milky = "".join(f'<path fill="#fff" fill-opacity="{o}" d="{dots(band[i::3])}"/>' for i, o in enumerate([.25, .4, .6]))
     lane = smooth([(x, my(x) + 5 + 7 * math.sin(x / 70)) for x in range(-20, W + 40, 40)])
@@ -1576,25 +1812,75 @@ def night_hero():
         (64, 52, 1.1, FROST, 4.2, 1), (236, 26, .8, "#FFE9C7", 5.5, 3), (118, 228, .7, FROST, 3.6, 2),
         (930, 214, .9, "#E2DAFF", 4.8, 0), (744, 26, .75, FROST, 6, 4), (40, 300, .6, "#FFE9C7", 3.4, 1.5)])
 
-    # three curtains: a high violet one, the main storm, a low bright fold
-    c2 = aurora(rnd, -40, W + 40, lambda x: 196 + 18 * math.sin(x / 190 + 2.2) + 7 * math.sin(x / 71),
-                lambda x: 70 + 60 * math.sin(x / 230 + 1) ** 2, 4.2, "ray2")
-    c1 = aurora(rnd, -40, W + 40, lambda x: 238 + 24 * math.sin(x / 160 + .6) + 9 * math.sin(x / 57 + 1.3),
-                lambda x: 80 + 100 * math.sin(x / 210 + 2) ** 2, 3, "ray1")
-    c3 = aurora(rnd, 480, W + 40, lambda x: 268 + 14 * math.sin(x / 90 + .4),
-                lambda x: 40 + 40 * math.sin(x / 120) ** 2, 3, "ray1")
+    # ── aurora: a distant arc low on the horizon, a high violet curtain, and
+    # the main storm folding across the sky in front of both
+    arc = hero_curtain(rnd, -60, W + 60, 4.5, lambda s: s, lambda s: 300 + 10 * math.sin(s / 260 + 1),
+                       lambda s: 46 + 22 * math.sin(s / 140) ** 2, "ag3", 520, "aw2", ray_p=.5)
+    back = hero_curtain(rnd, -80, W + 80, 3.2,
+                        lambda s: s + 52 * math.sin(s / 75 + 2),
+                        lambda s: 178 + 20 * math.sin(s / 210 + 2.4) + 8 * math.sin(s / 63),
+                        lambda s: 60 + 85 * math.sin(s / 240 + 1) ** 2, "ag2", 380, "aw2",
+                        I=lambda s: .35 + .65 * math.sin(s / 190 + .3) ** 2)
+    main = hero_curtain(rnd, -100, W + 100, 2.1,
+                        lambda s: s + 105 * math.sin(s / 150 + .5) + 7 * math.sin(s / 31),
+                        lambda s: 232 + 26 * math.sin(s / 170 + .6) + 8 * math.sin(s / 47 + 1.3) - 16 * math.cos(s / 150 + .5),
+                        lambda s: 95 + 150 * math.sin(s / 205 + 2.1) ** 2 + 20 * math.sin(s / 37) ** 2, "ag1", 300, "aw1",
+                        I=lambda s: min(1, .4 + .75 * math.sin(s / 160 + 1.1) ** 2 + .15 * math.sin(s / 41)))
+    lowfold = hero_curtain(rnd, 520, W + 80, 2.4,
+                           lambda s: s + 26 * math.sin(s / 40),
+                           lambda s: 268 + 12 * math.sin(s / 80 + .4),
+                           lambda s: 40 + 55 * math.sin(s / 110) ** 2, "ag1", 220, "aw3")
+    edge = smooth([(x, 232 + 26 * math.sin(x / 170 + .6) + 8 * math.sin(x / 47 + 1.3)) for x in range(-40, W + 60, 20)])
     curtains = "".join(
-        f'<g class="grow" style="animation-delay:{dl}s"><g class="sway" mask="url(#am)" opacity="{op}" style="animation-duration:{dur}s">{c}</g></g>'
-        for c, op, dur, dl in [(c2, .6, 21, .4), (c1, 1, 16, 0), (c3, .85, 12, .9)])
+        f'<g class="grow" style="animation-delay:{dl}s"><g class="sway" style="animation-duration:{dur}s"><g mask="url(#{m})" opacity="{op}">{c}</g></g></g>'
+        for c, op, dur, dl, m in [(arc, .55, 27, .2, "am2"), (back, .7, 23, .4, "am2"), (main, 1, 17, 0, "am1"), (lowfold, .85, 13, .9, "am1")])
 
-    # mountains
-    peaks = [(150, 74, 230), (460, 100, 260), (780, 66, 210), (950, 82, 200)]
-    M1 = ridge(rnd, -20, W + 20, 322, 10, peaks, iters=7)
-    snow = snowcap(rnd, M1, 250, (5, 16))
-    M2 = ridge(rnd, -20, W + 20, 344, 6, [(300, 46, 240), (690, 38, 230)], iters=6)
-    M3 = ridge(rnd, -20, W + 20, HZ + 1, 2, [], iters=4)
-    t2 = treeline(rnd, M2, 8, 20, 5, sink=3)
-    t3 = treeline(rnd, M3, 14, 40, 6, sink=3)
+    # ── mountains: a hazy far range, the main range lit by the moon, forested foothills
+    MX, MYY = 892, 66
+    mrnd = random.Random(23)   # mountains draw from their own seed, so sky changes never reshape them
+    far_pk = [(80, 50, 150), (250, 62, 160), (390, 40, 120), (590, 70, 170), (720, 48, 130), (880, 58, 150)]
+    M0 = ridge(mrnd, -20, W + 20, 332, 12, far_pk, iters=7, decay=.66, sharp=1.7)
+    peaks = [(118, 92, 175), (305, 70, 150), (468, 148, 215), (642, 84, 165), (800, 112, 185), (966, 92, 160)]
+    M1 = ridge(mrnd, -20, W + 20, 346, 24, peaks, iters=8, decay=.7, sharp=1.6)
+    M2 = ridge(mrnd, -20, W + 20, 352, 6, [(300, 34, 240), (690, 28, 230)], iters=6)
+    M3 = ridge(mrnd, -20, W + 20, HZ + 1, 2, [], iters=4)
+    t2 = treeline(mrnd, M2, 7, 18, 4.5, sink=3)
+    t3 = treeline(mrnd, M3, 14, 40, 6, sink=3)
+    top1 = min(y for _, y in M1)
+    top0 = min(y for _, y in M0)
+    m0box = (-20, math.floor(top0) - 2, W + 20, 342)
+    m0jpg, m0arr = terrain_jpeg(M0, far_pk, m0box, 1.2, 12, MX, 312, dict(
+        fx=.04, fy=.012, oct=4, relief=6, gully=2, snow_bias=.7, q=72,
+        rock_dark="#14243C", rock_lit="#4A6488", snow_dark="#3C5274", snow_lit="#AFC3DE",
+        aurora="#3DFFB0", aurora_k=.2, haze="#1B3350", haze_from=270, haze_to=338, haze_k=.8))
+    m1box = (-20, math.floor(top1) - 2, W + 20, 358)
+    m1jpg, m1arr = terrain_jpeg(M1, peaks, m1box, 1.6, 31, MX, 318, dict(
+        fx=.03, fy=.009, oct=6, relief=9, gully=2.4, snow_bias=.62,
+        rock_dark="#08101E", rock_lit="#4D6A93", snow_dark="#34496C", snow_lit="#E4EEFF",
+        aurora="#3DFFB0", aurora_k=.16, haze="#122238", haze_from=290, haze_to=356, haze_k=.75))
+
+    # the lake's reflection is baked too, then cut into strips that sway a
+    # little out of step with each other, more the closer they are
+    import numpy as np
+    RB = (-14, HZ, W + 14, H)
+    rjpg = reflection_jpeg(RB, 1.5, HZ,
+        [(0, "#010207"), (.3, "#030A1B"), (.62, "#071A33"), (.84, "#0B2B3E"), (1, "#123D44")],
+        (500, 300, 560, [(0, "#2EE59A", .29), (.35, "#18B987", .14), (.7, "#1B6F8A", .04), (1, "#1B6F8A", 0)]),
+        [(_polys(fill_under(M0, HZ + 30)), (m0arr, m0box, 1.2)),
+         (_polys(fill_under(M1, HZ + 30)), (m1arr, m1box, 1.6)),
+         (_polys(fill_under(M2, HZ + 30) + t2), "#08121F"),
+         (_polys(fill_under(M3, HZ + 30) + t3), "#040910")],
+        lambda x: 232 + 26 * np.sin(x / 170 + .6) + 8 * np.sin(x / 47 + 1.3), 5)
+    rr, ys, k, sclip, suse = random.Random(9), HZ, 0, [], []
+    while ys < H:
+        t = (ys - HZ) / (H - HZ)
+        h = 1.6 + 9 * t ** 1.4
+        d = rr.uniform(2.2, 4.8)
+        sclip.append(f'<clipPath id="rs{k}"><rect x="-20" y="{n(ys)}" width="{W + 40}" height="{n(h + .7)}"/></clipPath>')
+        suse.append(f'<g clip-path="url(#rs{k})"><use xlink:href="#rimg" href="#rimg" class="wv{1 if t < .2 else 2 if t < .55 else 3}" '
+                    f'style="animation-duration:{d:.1f}s;animation-delay:-{rr.uniform(0, d):.1f}s"/></g>')
+        ys, k = ys + h, k + 1
+    sclip, suse = "".join(sclip), "".join(suse)
 
     # the bank in front: camp, fire, someone on a log, an upturned canoe
     bank = [(-20, 414), (60, 411), (150, 414), (240, 419), (320, 426), (390, 440), (440, 462), (478, 496), (500, 545)]
@@ -1631,7 +1917,7 @@ def night_hero():
         <!-- head, tilted up toward the aurora -->
         <g transform="rotate(-16 2 -34)">
           <path d="M.6 -33 L.8 -35.2 C-2.4 -36.4 -3 -42 -1 -45 C1 -48.2 6 -48.6 7.6 -45.2 L8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6 C7.1 -36.2 5.2 -36 4.2 -35.6 L4.2 -33Z" fill="url(#skin)"/>
-          <path d="M8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6" fill="none" stroke="#FFB27A" stroke-opacity=".18" stroke-width=".4"/>
+          <path d="M8 -43.6 L9.6 -41.2 L8.3 -40.6 L8.7 -39.4 L8.1 -38.7 L8.3 -37.6" fill="none" stroke="#9FFFD4" stroke-opacity=".3" stroke-width=".4"/>
           <path d="M6.6 -42.6 q.8 .5 1.4 .2" fill="none" stroke="#05070C" stroke-width=".5" stroke-linecap="round"/>
           <ellipse cx="1.9" cy="-40.6" rx=".95" ry="1.45" fill="#3A1E14"/>
           <g class="hair">
@@ -1656,39 +1942,102 @@ def night_hero():
     rocks = "M760 545 C770 520 800 512 826 522 C846 506 880 508 902 524 C930 516 960 520 990 534 L1010 545Z"
     flies = motes(rnd, 26, 300, 900, HZ - 40, H - 30, "#E4FF9A", 1.4, cls="fly")
 
-    # water: fire glints along the bank, a column of moonlight
+    # ── water: ripple crests, fire glints along the bank, a long road of moonlight
+    crest = ripples(rnd, W, HZ, H, "#BFE6FF", ".09", ".7")
+    crest2 = ripples(rnd, W, HZ, H, "#7DFFC4", ".07", ".6")
+    trough = ripples(rnd, W, HZ, H, "#010409", ".32", "1")
     fire_gl = "".join(
         f'<rect class="gl" x="{n(rnd.uniform(380, 470) + i * 6)}" y="{n(HZ + 22 + i * 7)}" width="{n(rnd.uniform(10, 30))}" height="1.4" rx=".7" fill="#FFB866" '
         f'style="animation-duration:{rnd.uniform(1.2, 2.4):.1f}s;animation-delay:-{rnd.uniform(0, 2):.1f}s"/>' for i in range(9))
-    MX, MYY = 892, 66
-    moon_gl = "".join(
-        f'<rect class="gl" x="{n(MX - w / 2 + rnd.uniform(-4, 4))}" y="{n(HZ + 4 + i * 5)}" width="{n(w)}" height="1.3" rx=".6" fill="{FROST}" '
-        f'style="animation-duration:{rnd.uniform(1.6, 3.2):.1f}s;animation-delay:-{rnd.uniform(0, 3):.1f}s"/>'
-        for i, w in enumerate([24, 16, 26, 12, 18, 10, 14, 7, 10, 5, 8, 4, 6, 3]))
+    moon_gl, y = [], HZ + 2
+    while y < H - 6:
+        t = (y - HZ) / (H - HZ)
+        for _ in range(1 + int(t * 3)):
+            w = rnd.uniform(3, 14) * (1 + 2.5 * t) * (1 - .55 * rnd.random())
+            moon_gl.append(f'<rect class="gl" x="{n(MX - w / 2 + rnd.gauss(0, 5 + 26 * t))}" y="{n(y)}" width="{n(w)}" height="{n(.9 + 1.2 * t)}" rx=".6" fill="{FROST}" '
+                           f'style="animation-duration:{rnd.uniform(1.4, 3.4):.1f}s;animation-delay:-{rnd.uniform(0, 3):.1f}s"/>')
+        y += 2.2 + 9 * t ** 1.3
+    moon_gl = "".join(moon_gl)
     mist = "".join(f'<ellipse class="mist" cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" fill="url(#mistg)" style="animation-duration:{d}s;animation-delay:-{dl}s"/>'
                    for x, y, rx, ry, d, dl in [(230, HZ - 6, 260, 14, 34, 0), (640, HZ - 2, 320, 12, 41, 12), (880, HZ + 8, 220, 10, 29, 6), (500, HZ + 14, 280, 8, 37, 20)])
+
+    # aurora colour, shared by every curtain: a thin pink nitrogen fringe under
+    # a hard white-green edge, green body, then blue, violet and the faint
+    # crimson of oxygen at the top, where the air is thinnest
+    def lg(gid, stops):
+        return (f'<linearGradient id="{gid}" x1="0" y1="1" x2="0" y2="0">'
+                + "".join(f'<stop offset="{o}" stop-color="{c}" stop-opacity="{a}"/>' for o, c, a in stops) + "</linearGradient>")
+    grads = "".join([
+        lg("ag1", [(0, "#FF5FAE", 0), (.008, "#FF6FBC", .75), (.026, "#FFB3DF", .8), (.04, "#F6FFFA", 1), (.09, "#B4FFDC", 1), (.2, "#4BF5AC", .78),
+                   (.42, "#22CF90", .38), (.64, "#3C86F0", .17), (.84, "#A34EE0", .12), (1, "#FF3F7F", 0)]),
+        lg("ag1v", [(0, "#FF8CC8", 0), (.015, "#FF9CD0", .35), (.035, "#E2FFF0", .72), (.12, "#5AF4B2", .52), (.36, "#1DBA86", .22), (.66, "#4F63D8", .08), (1, "#C0408E", 0)]),
+        lg("ag2", [(0, "#E9FFF4", 0), (.025, "#E2FFF1", .85), (.1, "#7EF7C2", .7), (.3, "#2CCB8E", .4), (.55, "#7E5BFF", .22),
+                   (.8, "#E0458F", .16), (1, "#FF4A6A", 0)]),
+        lg("ag2v", [(0, "#BFFFE0", 0), (.04, "#BFFFE0", .5), (.2, "#3BD79C", .3), (.5, "#6A55E8", .14), (.8, "#D2408A", .08), (1, "#FF4A6A", 0)]),
+        lg("ag3", [(0, "#CFFFE6", 0), (.05, "#CFFFE6", .7), (.3, "#3BE39F", .45), (.7, "#2A9C86", .12), (1, "#2A9C86", 0)]),
+        lg("ag3v", [(0, "#CFFFE6", 0), (.06, "#9CF5CC", .45), (.4, "#2BB98A", .2), (1, "#2A9C86", 0)]),
+    ])
+
+    def pulse_mask(mid, period, dur, rev, stops):
+        vals = f"{period} 0;0 0" if rev else f"0 0;{period} 0"
+        st = "".join(f'<stop offset="{o}" stop-color="{c}"/>' for o, c in stops)
+        return (f'<linearGradient id="{mid}g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{period}" y2="0" spreadMethod="repeat">{st}'
+                f'<animateTransform attributeName="gradientTransform" type="translate" values="{vals}" dur="{dur}s" repeatCount="indefinite"/></linearGradient>'
+                f'<mask id="{mid}" maskUnits="userSpaceOnUse" x="-300" y="-300" width="1600" height="1000"><rect x="-300" y="-300" width="1600" height="1000" fill="url(#{mid}g)"/></mask>')
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="I am Aditya Padmarajan. Software developer at STEMCELL Technologies in Vancouver, BC. An aurora over an alpine lake, a campfire, and someone watching it.">
   <title>I am Aditya Padmarajan</title>
   <defs>
-    {sky_grad("hsky", 0, HZ)}
-    {aurora_defs()}
+    <linearGradient id="hsky" x1="0" y1="0" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#010207"/><stop offset=".3" stop-color="#030A1B"/><stop offset=".62" stop-color="#071A33"/>
+      <stop offset=".84" stop-color="#0B2B3E"/><stop offset="1" stop-color="#123D44"/>
+    </linearGradient>
+    <radialGradient id="skyglow" cx="500" cy="300" r="560" gradientTransform="translate(0 300) scale(1 .5) translate(0 -300)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2EE59A" stop-opacity=".34"/><stop offset=".35" stop-color="#18B987" stop-opacity=".16"/>
+      <stop offset=".7" stop-color="#1B6F8A" stop-opacity=".05"/><stop offset="1" stop-color="#1B6F8A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="skyred" cx="380" cy="60" r="420" gradientTransform="translate(0 60) scale(1 .45) translate(0 -60)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B0307A" stop-opacity=".16"/><stop offset=".6" stop-color="#5B2FA0" stop-opacity=".06"/><stop offset="1" stop-color="#5B2FA0" stop-opacity="0"/>
+    </radialGradient>
+    {grads}
+    {pulse_mask("am1", 430, 9, False, [(0, "#707070"), (.16, "#FFFFFF"), (.3, "#9A9A9A"), (.47, "#5C5C5C"), (.62, "#D8D8D8"), (.74, "#FFFFFF"), (.86, "#888888"), (1, "#707070")])}
+    {pulse_mask("am2", 610, 16, True, [(0, "#8A8A8A"), (.25, "#FFFFFF"), (.5, "#7A7A7A"), (.7, "#C8C8C8"), (1, "#8A8A8A")])}
+    <filter id="rsoft" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation="1.1 0"/></filter>
+    <filter id="ablur2" x="-10%" y="-100%" width="120%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+    <radialGradient id="bstar"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".3" stop-color="#CFE3FF" stop-opacity=".15"/><stop offset="1" stop-color="#CFE3FF" stop-opacity="0"/></radialGradient>
     <radialGradient id="milk" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#D8D0FF" stop-opacity=".22"/><stop offset=".5" stop-color="#9F96E8" stop-opacity=".08"/><stop offset="1" stop-color="#9F96E8" stop-opacity="0"/>
+      <stop offset="0" stop-color="#D8D0FF" stop-opacity=".2"/><stop offset=".5" stop-color="#9F96E8" stop-opacity=".07"/><stop offset="1" stop-color="#9F96E8" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="milk2" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#FFF0DC" stop-opacity=".16"/><stop offset="1" stop-color="#FFF0DC" stop-opacity="0"/>
+      <stop offset="0" stop-color="#FFF0DC" stop-opacity=".14"/><stop offset="1" stop-color="#FFF0DC" stop-opacity="0"/>
     </radialGradient>
+    <filter id="mwtex" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".006 .03" numOctaves="4" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .9  0 0 0 0 .88  0 0 0 0 1  2.6 0 0 0 -1.05"/>
+      <feComposite in2="SourceGraphic" operator="arithmetic" k1="1"/>
+    </filter>
     <filter id="lane" x="-5%" y="-50%" width="110%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
-    <radialGradient id="halo"><stop offset="0" stop-color="#FFF3DC" stop-opacity=".35"/><stop offset=".25" stop-color="#DDEBFF" stop-opacity=".1"/><stop offset="1" stop-color="#DDEBFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#FFF3DC" stop-opacity=".32"/><stop offset=".25" stop-color="#DDEBFF" stop-opacity=".09"/><stop offset="1" stop-color="#DDEBFF" stop-opacity="0"/></radialGradient>
     <mask id="moonm"><circle r="14" fill="#fff"/><circle cx="6.5" cy="-4" r="12.5" fill="#000"/></mask>
-    <linearGradient id="mt1" x1="0" y1="210" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1A2D48"/><stop offset="1" stop-color="#0C1729"/></linearGradient>
-    <linearGradient id="snowg" x1="0" y1="210" x2="0" y2="262" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E9F7FF" stop-opacity=".7"/><stop offset="1" stop-color="#9FE8D0" stop-opacity=".25"/></linearGradient>
+
+    <!-- mountains: moonlit rock and wind-scoured snow -->
+    <linearGradient id="alit" x1="0" y1="{n(top1)}" x2="0" y2="330" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5DFFBE" stop-opacity=".32"/><stop offset="1" stop-color="#5DFFBE" stop-opacity="0"/></linearGradient>
     <radialGradient id="mistg"><stop offset="0" stop-color="#CFE8F5" stop-opacity=".13"/><stop offset="1" stop-color="#CFE8F5" stop-opacity="0"/></radialGradient>
+    <linearGradient id="haze" x1="0" y1="300" x2="0" y2="{HZ}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3D8C8A" stop-opacity="0"/><stop offset="1" stop-color="#3D8C8A" stop-opacity=".22"/></linearGradient>
+    <path id="m0" d="{fill_under(M0, HZ + 30)}"/>
+    <path id="m1" d="{fill_under(M1, HZ + 30)}"/>
+    <path id="m2" d="{fill_under(M2, HZ + 30)}{t2}"/><path id="m3" d="{fill_under(M3, HZ + 30)}{t3}"/>
+    <clipPath id="m1c"><path d="{fill_under(M1, HZ + 30)}"/></clipPath>
+    <image id="m1t" x="{m1box[0]}" y="{m1box[1]}" width="{m1box[2] - m1box[0]}" height="{m1box[3] - m1box[1]}" preserveAspectRatio="none" xlink:href="data:image/jpeg;base64,{m1jpg}"/>
+    <image id="m0t" x="{m0box[0]}" y="{m0box[1]}" width="{m0box[2] - m0box[0]}" height="{m0box[3] - m0box[1]}" preserveAspectRatio="none" xlink:href="data:image/jpeg;base64,{m0jpg}"/>
+    <clipPath id="m0c"><path d="{fill_under(M0, HZ + 30)}"/></clipPath>
+
+    <!-- lake: the reflection is pushed around by moving water, never mirror-still -->
+    <image id="rimg" x="{RB[0]}" y="{RB[1]}" width="{RB[2] - RB[0]}" height="{RB[3] - RB[1]}" preserveAspectRatio="none" xlink:href="data:image/jpeg;base64,{rjpg}"/>
+    {sclip}
     <linearGradient id="lake" x1="0" y1="{HZ}" x2="0" y2="{H}" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0E2638" stop-opacity=".05"/><stop offset=".5" stop-color="#06111D" stop-opacity=".5"/><stop offset="1" stop-color="#02060C" stop-opacity=".95"/>
+      <stop offset="0" stop-color="#0E2A36" stop-opacity=".05"/><stop offset=".4" stop-color="#061420" stop-opacity=".22"/><stop offset="1" stop-color="#02060C" stop-opacity=".7"/>
     </linearGradient>
-    {ripple_mask("rm", H, W, HZ, 4, 2.6, "#5a5a5a")}
     <clipPath id="lc"><rect y="{HZ}" width="{W}" height="{H - HZ}"/></clipPath>
     <radialGradient id="fireg" cx="{FX}" cy="{n(FY - 8)}" r="260" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFB25A" stop-opacity=".5"/><stop offset=".3" stop-color="#F2794A" stop-opacity=".16"/><stop offset="1" stop-color="#F2794A" stop-opacity="0"/>
@@ -1699,7 +2048,7 @@ def night_hero():
     <linearGradient id="tent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFCB85"/><stop offset="1" stop-color="#C9632F"/></linearGradient>
     <linearGradient id="skin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4A2414"/><stop offset=".45" stop-color="#140A08"/><stop offset="1" stop-color="#05070C"/></linearGradient>
     <linearGradient id="shootg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
-    <radialGradient id="scrim" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#01030A" stop-opacity=".62"/><stop offset=".6" stop-color="#01030A" stop-opacity=".3"/><stop offset="1" stop-color="#01030A" stop-opacity="0"/></radialGradient>
+    <radialGradient id="scrim" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#01030A" stop-opacity=".66"/><stop offset=".6" stop-color="#01030A" stop-opacity=".32"/><stop offset="1" stop-color="#01030A" stop-opacity="0"/></radialGradient>
     <radialGradient id="vig" cx="50%" cy="45%" r="75%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>
     <linearGradient id="nameg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0">
       <stop offset="0" stop-color="{MINT}"/><stop offset=".45" stop-color="{MINT}"/><stop offset=".5" stop-color="#FFFFFF"/><stop offset=".55" stop-color="{MINT}"/><stop offset="1" stop-color="{MINT}"/>
@@ -1718,13 +2067,34 @@ def night_hero():
     @keyframes hair {{ from {{ transform:rotate(-1.5deg); }} to {{ transform:rotate(1.5deg); }} }}
     .steam {{ transform-box:fill-box; transform-origin:50% 100%; animation:steam 3.2s ease-out infinite; }}
     @keyframes steam {{ 0% {{ opacity:0; transform:translateY(1px) scale(.8); }} 30% {{ opacity:1; }} 100% {{ opacity:0; transform:translateY(-5px) scale(1.2); }} }}
-    @keyframes sat {{ 0% {{ transform:translate(0,0); opacity:0; }} 4% {{ opacity:.85; }} 55% {{ transform:translate(760px,120px); opacity:.85; }} 56%,100% {{ transform:translate(760px,120px); opacity:0; }} }}''')}
+    @keyframes sat {{ 0% {{ transform:translate(0,0); opacity:0; }} 4% {{ opacity:.85; }} 55% {{ transform:translate(760px,120px); opacity:.85; }} 56%,100% {{ transform:translate(760px,120px); opacity:0; }} }}
+    .aw1,.aw2,.aw3 {{ transform-box:fill-box; transform-origin:50% 100%; animation:ease-in-out infinite alternate; }}
+    .aw1 {{ animation-name:aw1; animation-duration:7.5s; }} .aw2 {{ animation-name:aw2; animation-duration:10.5s; }} .aw3 {{ animation-name:aw1; animation-duration:6s; }}
+    @keyframes aw1 {{ from {{ transform:translateY(-9px) scaleY(.88); }} to {{ transform:translateY(9px) scaleY(1.1); }} }}
+    @keyframes aw2 {{ from {{ transform:translateY(-6px) scaleY(.92); }} to {{ transform:translateY(6px) scaleY(1.07); }} }}
+    .fl {{ animation:fl ease-in-out infinite; }}
+    @keyframes fl {{ 0%,100% {{ opacity:.55; }} 17% {{ opacity:1; }} 31% {{ opacity:.68; }} 50% {{ opacity:.96; }} 68% {{ opacity:.5; }} 84% {{ opacity:.9; }} }}
+    .sway {{ animation-name:sway2; }}
+    @keyframes sway2 {{ from {{ transform:translateX(-12px) skewX(-2deg); }} to {{ transform:translateX(12px) skewX(2deg); }} }}
+    .breath {{ animation:breath 9s ease-in-out infinite; }}
+    @keyframes breath {{ 0%,100% {{ opacity:.7; }} 40% {{ opacity:1; }} 70% {{ opacity:.82; }} }}
+    .drift {{ animation:drift ease-in-out infinite alternate; }}
+    .wv1,.wv2,.wv3 {{ animation:ease-in-out infinite alternate; }}
+    .wv1 {{ animation-name:wv1; }} .wv2 {{ animation-name:wv2; }} .wv3 {{ animation-name:wv3; }}
+    @keyframes wv1 {{ from {{ transform:translateX(-.7px); }} to {{ transform:translateX(.7px); }} }}
+    @keyframes wv2 {{ from {{ transform:translateX(-1.8px); }} to {{ transform:translateX(1.8px); }} }}
+    @keyframes wv3 {{ from {{ transform:translateX(-3.4px); }} to {{ transform:translateX(3.4px); }} }}
+    @keyframes drift {{ from {{ transform:translateX(-18px); }} to {{ transform:translateX(18px); }} }}
+    {reduced(".aw1,.aw2,.aw3,.fl,.breath,.drift,.wv1,.wv2,.wv3")}''')}
   </style>
   <g clip-path="url(#frame)">
-    <g id="sky">
+    <g>
       <rect width="{W}" height="{HZ + 2}" fill="url(#hsky)"/>
+      <rect class="breath" width="{W}" height="{HZ + 2}" fill="url(#skyglow)"/>
+      <rect class="breath" style="animation-delay:-4s" width="{W}" height="{HZ + 2}" fill="url(#skyred)"/>
       <g class="fade">
         <ellipse cx="500" cy="{n(my(500))}" rx="680" ry="78" fill="url(#milk)" transform="rotate({ang:.1f} 500 {n(my(500))})"/>
+        <ellipse cx="500" cy="{n(my(500))}" rx="640" ry="60" fill="url(#milk)" filter="url(#mwtex)" transform="rotate({ang:.1f} 500 {n(my(500))})"/>
         <ellipse cx="420" cy="{n(my(420))}" rx="420" ry="26" fill="url(#milk2)" transform="rotate({ang:.1f} 420 {n(my(420))})"/>
         {milky}
         <path d="{lane}" fill="none" stroke="#01030A" stroke-opacity=".5" stroke-width="12" filter="url(#lane)"/>
@@ -1736,26 +2106,39 @@ def night_hero():
         <circle r="14" fill="#FFF3DC" fill-opacity=".07"/>
         <circle r="14" fill="#FFF5E4" mask="url(#moonm)"/>
       </g>
-      {curtains}
-      <path d="{fill_under(M1, HZ + 30)}" fill="url(#mt1)"/>
-      <path d="{snow}" fill="url(#snowg)"/>
-      <path d="{line_of(M1)}" fill="none" stroke="{AURORA}" stroke-opacity=".3" stroke-width="1.1"/>
-      <path d="{fill_under(M2, HZ + 30)}" fill="#0A1526"/><path d="{t2}" fill="#0A1526"/>
+      <g>
+        {curtains}
+      </g>
+      <!-- far range, softened by distance -->
+      <use xlink:href="#m0" href="#m0" fill="#1B3350"/>
+      <g clip-path="url(#m0c)"><use xlink:href="#m0t" href="#m0t"/></g>
+      <path d="{line_of(M0)}" fill="none" stroke="#8FFFD0" stroke-opacity=".16" stroke-width=".8"/>
+      <rect y="290" width="{W}" height="{HZ - 290}" fill="url(#haze)"/>
+      <!-- main range: rock, snow, the faces turned away from the moon, aurora light on top -->
+      <use xlink:href="#m1" href="#m1" fill="#122238"/>
+      <g clip-path="url(#m1c)">
+        <use xlink:href="#m1t" href="#m1t"/>
+        <rect class="breath" y="{n(top1)}" width="{W}" height="{n(HZ - top1)}" fill="url(#alit)" opacity=".45"/>
+      </g>
+      <path d="{line_of(M1)}" fill="none" stroke="#B4FFE0" stroke-opacity=".38" stroke-width=".8"/>
+      <path d="{line_of(M1)}" fill="none" stroke="{AURORA}" stroke-opacity=".22" stroke-width="4" filter="url(#ablur2)"/>
+      <use xlink:href="#m2" href="#m2" fill="#08121F"/>
       {mist}
-      <path d="{fill_under(M3, HZ + 30)}" fill="#050B14"/><path d="{t3}" fill="#050B14"/>
+      <use xlink:href="#m3" href="#m3" fill="#040910"/>
     </g>
 
     <g class="shoot"><path d="M760 40 l130 -58" stroke="url(#shootg)" stroke-width="1.4" transform="rotate(180 825 11)"/></g>
     <g class="shoot" style="animation-duration:19s;animation-delay:-7s"><path d="M330 34 l96 -42" stroke="url(#shootg)" stroke-width="1.1" transform="rotate(180 378 13)"/></g>
     <circle class="sat" cx="60" cy="24" r=".9" fill="#fff"/>
 
-    <!-- the lake holds all of it, broken by ripples -->
-    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="#04101B"/>
-    <g clip-path="url(#lc)" mask="url(#rm)" opacity=".8">
-      <use xlink:href="#sky" href="#sky" transform="matrix(1 0 0 -1 0 {2 * HZ})"/>
-    </g>
+    <!-- the lake holds all of it -->
+    <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="#030B14"/>
+    <g clip-path="url(#lc)">{suse}</g>
     <rect y="{HZ}" width="{W}" height="{H - HZ}" fill="url(#lake)"/>
-    <rect y="{HZ}" width="{W}" height="1" fill="#BFF5E2" fill-opacity=".18"/>
+    <g class="drift" style="animation-duration:11s">{trough}</g>
+    <g class="drift" style="animation-duration:7s;animation-delay:-3s">{crest}</g>
+    <g class="drift" style="animation-duration:9s;animation-delay:-6s">{crest2}</g>
+    <rect y="{HZ}" width="{W}" height="1" fill="#BFF5E2" fill-opacity=".22"/>
     <g>{moon_gl}</g>
     <g>{fire_gl}</g>
 
@@ -1773,8 +2156,8 @@ def night_hero():
     <g fill="#010307">{fg}</g>
 
     <!-- name -->
-    <ellipse cx="500" cy="134" rx="400" ry="92" fill="url(#scrim)"/>
-    <g class="in" style="animation-delay:.3s"><text class="k" x="500" y="86" text-anchor="middle">22:47  ·  49.28° N  123.12° W  ·  KP 6, CLEAR SKIES</text></g>
+    <ellipse cx="500" cy="134" rx="410" ry="96" fill="url(#scrim)"/>
+    <g class="in" style="animation-delay:.3s"><text class="k" x="500" y="86" text-anchor="middle">22:47  ·  49.28° N  123.12° W  ·  KP 7, CLEAR SKIES</text></g>
     <g class="in" style="animation-delay:.9s">
       <text class="t" x="500" y="146" text-anchor="middle" fill="{AURORA}" style="fill:{AURORA};fill-opacity:.35" filter="url(#tglow)">I am <tspan font-style="italic">Aditya Padmarajan</tspan>.</text>
       <text class="t" x="500" y="146" text-anchor="middle">I am <tspan font-style="italic" fill="url(#nameg)" style="fill:url(#nameg)">Aditya Padmarajan</tspan>.</text>
